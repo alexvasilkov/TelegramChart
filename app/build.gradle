@@ -15,16 +15,13 @@ android {
         versionName '1.0.0'
     }
 
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin/'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
     implementation 'androidx.appcompat:appcompat:1.0.2'
-    implementation 'androidx.core:core-ktx:1.0.1'
-
     implementation 'com.google.code.gson:gson:2.8.5'
 }
