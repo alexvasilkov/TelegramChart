@@ -43,9 +43,8 @@ public class ChartView extends BaseChartView {
         yGuidesPaint.setStrokeWidth(dpToPx(1f));
         yGuidesPaint.setColor(Color.parseColor("#F1F1F1"));
 
-        xLabelPaint.setTextSize(dpToPx(14f));
+        xLabelPaint.setTextSize(dpToPx(12f));
         xLabelPaint.setColor(Color.BLACK);
-        xLabelPaint.setTextAlign(Paint.Align.CENTER);
 
         xLabelDotPaint.setStrokeWidth(dpToPx(2f));
         xLabelDotPaint.setColor(Color.parseColor("#E1E1E1"));
@@ -93,54 +92,56 @@ public class ChartView extends BaseChartView {
     }
 
     @Override
-    public void setRange(int fromX, int toX, boolean animateY) {
-        super.setRange(fromX, toX, animateY);
+    public void setRange(int fromX, int toX, boolean animateX, boolean animateY) {
+        super.setRange(fromX, toX, animateX, animateY);
 
         initRangesIfReady();
     }
 
 
     public void snap(boolean animate) {
-        Range range = getRangeX();
-        int size = getChart().x.length;
-
         // Calculating new from / to range which will nicely fit entire screen width
+        final FloatRange range = xRangeEnd;
 
         if (range.size() < 2 * xLabelsMinCount) {
             return; // No snapping needed
         }
 
+        final int targetLevel = calcLabelsLevel(range.size());
+
         // Closest "nice" size
-        int newSize = (range.size() / xLabelsLevel) * xLabelsLevel + 1;
+        final int newSize = ((int) range.size() / targetLevel) * targetLevel + 1;
 
         // Closest "nice" from / to range
         int newTo;
         int newFrom;
 
+        final int chartSize = (int) chartRange.size();
+
         if (direction > 0) {
-            newFrom = Math.round(range.from / (float) xLabelsLevel) * xLabelsLevel;
+            newFrom = Math.round(range.from / targetLevel) * targetLevel;
             newTo = newFrom + newSize - 1;
 
             // Switching to other closest position if we went outside of allowed range
-            if (newTo >= size) {
-                newTo -= xLabelsLevel;
-                newFrom -= xLabelsLevel;
+            if (newTo >= chartSize) {
+                newTo -= targetLevel;
+                newFrom -= targetLevel;
             }
         } else {
-            int to = size - 1 - range.to;
-            newTo = size - 1 - Math.round(to / (float) xLabelsLevel) * xLabelsLevel;
+            float to = chartSize - 1 - range.to;
+            newTo = chartSize - 1 - Math.round(to / targetLevel) * targetLevel;
             newFrom = newTo - newSize + 1;
 
             // Switching to other closest position if we went outside of allowed range
             if (newFrom < 0) {
-                newTo += xLabelsLevel;
-                newFrom += xLabelsLevel;
+                newTo += targetLevel;
+                newFrom += targetLevel;
             }
         }
 
         // Applying new "nice" range
         if (range.from != newFrom || range.to != newTo) {
-            setRange(newFrom, newTo, animate);
+            setRange(newFrom, newTo, animate, animate);
         }
     }
 
@@ -165,16 +166,117 @@ public class ChartView extends BaseChartView {
         }
 
         // Preparing new Y guides
-        Range rangeY = getRangeY();
+        final FloatRange yRange = yRangeEnd;
         for (int i = 0; i < Y_GUIDES_COUNT; i++) {
-            yGuides.orig[i] = rangeY.from + (rangeY.size() - 1f) * i / (Y_GUIDES_COUNT - 1f);
+            yGuides.orig[i] = yRange.from + (yRange.size() - 1f) * i / (Y_GUIDES_COUNT - 1f);
         }
 
-        // Setting up X labels
-        xLabelsLevel = calcLabelsLevel(getRangeX().size());
+        // Calculating current X labels level
+        xLabelsLevel = calcLabelsLevel(xRange.size());
+
+        toggleLabelsVisibility(false);
     }
 
-    private int calcLabelsLevel(int size) {
+
+    private void toggleLabelsVisibility(boolean animate) {
+        final int fromX = (int) Math.floor(xRange.from);
+        final int toX = (int) Math.floor(xRange.to);
+
+        for (int i = fromX; i <= toX; i++) {
+            XLabel label = xLabels.get(i);
+
+            final boolean show = label.maxLevel >= xLabelsLevel;
+            final float toState = show ? 1f : 0f;
+
+            if (label.targetState != toState) {
+                label.targetState = toState;
+
+                if (animate) {
+                    label.animation = new AnimationState(show ? label.state : 1f - label.state);
+                    animator.start();
+                } else {
+                    label.animation = null;
+                    label.state = toState;
+                }
+            }
+        }
+    }
+
+
+    @Override
+    protected boolean onAnimationStep() {
+        boolean result = super.onAnimationStep();
+
+        // X range may change, so need to re-calc current labels level and animate them
+        xLabelsLevel = calcLabelsLevel(xRange.size());
+        toggleLabelsVisibility(true);
+
+        // Calculating X labels animation states
+        for (XLabel label : xLabels) {
+            if (label.animation != null) {
+                float animState = label.animation.getState();
+                label.state = label.targetState == 1f ? animState : 1f - animState;
+
+                if (animState == 1f) {
+                    label.animation = null;
+                } else {
+                    result = true;
+                }
+            }
+        }
+
+        return result;
+    }
+
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        if (!isReady()) {
+            return;
+        }
+
+        final float left = getPaddingLeft();
+        final float right = getWidth() - getPaddingRight();
+
+        // Drawing Y guides
+        yGuides.transform(matrix);
+        for (float guideY : yGuides.transformed) {
+            canvas.drawLine(left, guideY, right, guideY, yGuidesPaint);
+        }
+
+        // Drawing chart
+        super.onDraw(canvas);
+
+        // Drawing X labels
+        final int fromX = (int) Math.floor(xRange.from);
+        final int toX = (int) Math.floor(xRange.to);
+
+        final float labelPosY = getHeight() - getPaddingBottom();
+        final float dotPosY = yGuides.transformed[0];
+
+        for (int i = fromX; i <= toX; i++) {
+            XLabel label = xLabels.get(i);
+
+            if (label.state > 0f) {
+                int alpha = (int) (255 * label.state);
+                xLabelPaint.setAlpha(alpha);
+                xLabelDotPaint.setAlpha(alpha);
+
+                float dotPosX = ChartMath.mapX(matrix, i);
+                float width = getLabelWidth(label);
+
+                // Shifting label X pos according to their position on screen to fit in chart width
+                float labelShift = (dotPosX - left) / (right - left);
+                float labelPosX = dotPosX - width * labelShift;
+
+                canvas.drawText(label.title, labelPosX, labelPosY, xLabelPaint);
+                canvas.drawPoint(dotPosX, dotPosY, xLabelDotPaint);
+            }
+        }
+    }
+
+
+    private int calcLabelsLevel(float size) {
         // Number of labels we can shown at the same time without hiding them is
         // [xLabelsMinCount, 2 * xLabelsMinCount - 1).
         // If there are more x values needs to be shown then we have to hide some of the labels.
@@ -188,59 +290,30 @@ public class ChartView extends BaseChartView {
             // Current level can be calculated as a maximum power of 2 that is less or equal to
             // the number of items in maximum possible interval.
             double intervalSize = (size - 2.0) / (xLabelsMinCount - 1.0);
-            double log2 = Math.log(intervalSize) / Math.log(2f);
-            return (int) Math.pow(2f, (int) log2);
+            double log2 = Math.log(intervalSize) / Math.log(2.0);
+            return (int) Math.pow(2.0, (int) log2);
         }
     }
 
-
-    @Override
-    protected void onDraw(Canvas canvas) {
-        if (!isReady()) {
-            return;
+    private float getLabelWidth(XLabel label) {
+        // Measuring requested label (if not measured yet)
+        if (Float.isNaN(label.width)) {
+            xLabelPaint.getTextBounds(label.title, 0, label.title.length(), textBounds);
+            label.width = textBounds.width();
         }
-
-        float left = getPaddingLeft();
-        float right = getWidth() - getPaddingRight();
-
-        // Drawing Y guides
-        yGuides.transform(getChartMatrix());
-        for (float guideY : yGuides.transformed) {
-            canvas.drawLine(left, guideY, right, guideY, yGuidesPaint);
-        }
-
-        // Drawing chart
-        super.onDraw(canvas);
-
-        // Drawing X labels
-        Range rangeX = getRangeX();
-        float labelPosY = getHeight() - getPaddingBottom();
-        float dotPosY = yGuides.transformed[0];
-
-        // Measure visible labels (if not measured yet)
-        //for (int i = rangeX.from; i <= rangeX.to; i++) {
-        //    XLabel label = xLabels.get(i);
-        //    boolean show = label.maxLevel >= xLabelsLevel;
-        //    if (show && Float.isNaN(label.width)) {
-        //        xLabelPaint.getTextBounds(label.title, 0, label.title.length(), textBounds);
-        //        label.width = textBounds.width();
-        //    }
-        //}
-
-        for (int i = rangeX.from; i <= rangeX.to; i++) {
-            XLabel label = xLabels.get(i);
-            boolean show = label.maxLevel >= xLabelsLevel;
-            if (show) {
-                float labelPosX = ChartMath.mapX(getChartMatrix(), i);
-                canvas.drawText(label.title, labelPosX, labelPosY, xLabelPaint);
-                canvas.drawPoint(labelPosX, dotPosY, xLabelDotPaint);
-            }
-        }
+        return label.width;
     }
+
 
     private static class XLabel {
         final String title;
         final int maxLevel;
+
+        float width = Float.NaN;
+
+        float state;
+        float targetState;
+        AnimationState animation;
 
         XLabel(String title, int maxLevel) {
             this.title = title;
@@ -249,11 +322,8 @@ public class ChartView extends BaseChartView {
     }
 
     private static class YGuides {
-
         final float[] orig;
         final float[] transformed;
-        long animationStartedAt;
-        float state;
 
         YGuides(float[] values) {
             orig = values;

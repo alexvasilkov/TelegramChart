@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
 
         ChartsLoader.loadCharts(getApplicationContext(), (List<Chart> charts) -> {
             chart = charts.get(0);
-            toX = chart.x.length - 1 - 92;
+            toX = chart.x.length - 1;
             chartView.setChart(chart, dateFormatter::format);
         });
 
@@ -48,9 +48,9 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 toX -= 1;
                 if (toX > 0) {
-                    chartView.setRange(0, toX, true);
+                    chartView.setRange(0, toX, true, true);
                     chartView.snap(true);
-                    handler.postDelayed(this, 1250L);
+                    handler.postDelayed(this, 320L);
                 }
             }
         };
