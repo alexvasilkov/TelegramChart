@@ -4,18 +4,31 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/background"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <com.alexvasilkov.telegram.chart.widget.ChartView
-            android:id="@+id/chart_view"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="320dp"
-            android:padding="16dp" />
+            android:layout_height="wrap_content"
+            android:background="@color/background"
+            android:orientation="vertical">
 
-    </LinearLayout>
+            <com.alexvasilkov.telegram.chart.widget.ChartView
+                android:id="@+id/chart_view"
+                android:layout_width="match_parent"
+                android:layout_height="320dp"
+                android:padding="16dp" />
+
+            <com.alexvasilkov.telegram.chart.widget.ChartFinderView
+                android:id="@+id/chart_finder_view"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_margin="16dp"
+                android:background="#f5f8f9" />
+
+        </LinearLayout>
+
+    </ScrollView>
 
 </merge>

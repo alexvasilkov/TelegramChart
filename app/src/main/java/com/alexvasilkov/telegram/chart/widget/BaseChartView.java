@@ -65,6 +65,10 @@ class BaseChartView extends View {
         insets.set(left, top, right, bottom);
     }
 
+    protected void setStrokeWidth(float strokeDp) {
+        pathPaint.setStrokeWidth(dpToPx(strokeDp));
+    }
+
 
     /**
      * Sets a chart to be drawn.
@@ -80,23 +84,26 @@ class BaseChartView extends View {
     /**
      * Specifies x-range to be shown. Chart should already be set before calling this method.
      */
-    public void setRange(int fromX, int toX, boolean animateX, boolean animateY) {
+    public void setRange(float fromX, float toX, boolean animateX, boolean animateY) {
         if (chart == null) {
             throw new IllegalStateException("Chart is not set");
         }
 
         // Fitting X range into available chart range
-        fromX = (int) chartRange.fit(fromX);
-        toX = (int) chartRange.fit(toX);
+        fromX = chartRange.fit(fromX);
+        toX = chartRange.fit(toX);
 
         if (fromX >= toX) {
             throw new IllegalArgumentException("'from' should be less than 'to'");
         }
 
+        int fromXInt = (int) Math.floor(fromX);
+        int toXInt = (int) Math.ceil(toX);
+
         // Calculating min Y value across all visible lines
         int minY = Integer.MAX_VALUE;
         for (Chart.Line line : chart.lines) {
-            for (int i = fromX; i <= toX; i++) {
+            for (int i = fromXInt; i <= toXInt; i++) {
                 minY = minY > line.y[i] ? line.y[i] : minY;
             }
         }
@@ -104,7 +111,7 @@ class BaseChartView extends View {
         // Calculating max Y value across all visible lines
         int maxY = Integer.MIN_VALUE;
         for (Chart.Line line : chart.lines) {
-            for (int i = fromX; i <= toX; i++) {
+            for (int i = fromXInt; i <= toXInt; i++) {
                 maxY = maxY < line.y[i] ? line.y[i] : maxY;
             }
         }
@@ -182,16 +189,20 @@ class BaseChartView extends View {
             return;
         }
 
-        final int width = getWidth() - getPaddingLeft() - getPaddingRight() - insets.width();
-        final int height = getHeight() - getPaddingTop() - getPaddingBottom() - insets.height();
+        final int width =
+                getWidth() - getPaddingLeft() - getPaddingRight() - insets.left - insets.right;
+        final int height =
+                getHeight() - getPaddingTop() - getPaddingBottom() - insets.top - insets.bottom;
 
         final float scaleX = width / (xRange.size() - 1f);
         final float scaleY = height / (yRange.size() - 1f);
 
         // We should start at the beginning of current X range and take padding into account
-        final float left = -xRange.from * scaleX + getPaddingLeft() + insets.left;
+        final float left =
+                -xRange.from * scaleX + getPaddingLeft() + insets.left;
         // Bottom of the chart should take padding into account
-        final float bottom = getHeight() - getPaddingBottom() - insets.bottom;
+        final float bottom =
+                yRange.from * scaleY + getHeight() - getPaddingBottom() - insets.bottom;
 
         matrix.setScale(scaleX, -scaleY); // Scale and flip along X axis
         matrix.postTranslate(left, bottom); // Translate to place
