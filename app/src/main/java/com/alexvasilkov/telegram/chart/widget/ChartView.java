@@ -5,10 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
+import android.graphics.Rect;
 import android.util.AttributeSet;
-import android.util.TypedValue;
-import android.view.View;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
 
@@ -18,130 +16,70 @@ import java.util.List;
 
 import androidx.annotation.Nullable;
 
-public class ChartView extends View {
+public class ChartView extends BaseChartView {
 
-    private static final int yGuidesCount = 6;
+    private static final int Y_GUIDES_COUNT = 6;
 
-    private static final float[] tmpFloatPoint = new float[2];
-
+    private static final Rect textBounds = new Rect();
 
     private final float xLabelMaxWidth = dpToPx(50f);
 
-    private Paint pathPaintTemplate = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private final YGuides yGuides = new YGuides(new float[Y_GUIDES_COUNT]);
+    private final List<YGuides> yGuidesOld = new ArrayList<>();
+    private final Paint yGuidesPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
 
-    {
-        pathPaintTemplate.setStyle(Paint.Style.STROKE);
-        pathPaintTemplate.setStrokeWidth(dpToPx(2f));
-    }
-
-    private Paint yGuidesPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-
-    {
-        yGuidesPaint.setStyle(Paint.Style.STROKE);
-        yGuidesPaint.setStrokeWidth(dpToPx(1f));
-        yGuidesPaint.setColor(Color.parseColor("#F1F1F1"));
-    }
-
-
-    private Chart chart;
     private List<XLabel> xLabels;
-    private List<Path> pathsOrig;
-    private List<Path> pathsTransformed;
-    private List<Paint> pathsPaints;
-
-    private final Range xRange = new Range(0, 0);
-    private final Range yRange = new Range(0, 0);
-    private YGuides yGuidesOrig;
-    private YGuides yGuidesTransformed;
-
     private int xLabelsLevel;
     private int xLabelsMinCount;
+    private final Paint xLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private final Paint xLabelDotPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
 
-    private final Matrix chartMatrix = new Matrix();
-
+    private int direction = 1;
 
     public ChartView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
 
-        setWillNotDraw(false);
+        yGuidesPaint.setStyle(Paint.Style.STROKE);
+        yGuidesPaint.setStrokeWidth(dpToPx(1f));
+        yGuidesPaint.setColor(Color.parseColor("#F1F1F1"));
+
+        xLabelPaint.setTextSize(dpToPx(14f));
+        xLabelPaint.setColor(Color.BLACK);
+        xLabelPaint.setTextAlign(Paint.Align.CENTER);
+
+        xLabelDotPaint.setStrokeWidth(dpToPx(2f));
+        xLabelDotPaint.setColor(Color.parseColor("#E1E1E1"));
+        xLabelDotPaint.setStrokeCap(Paint.Cap.ROUND);
+
+        setIncludeZeroY(true);
+        setMinSizeY(Y_GUIDES_COUNT);
+        setInsets(0, 0, 0, (int) dpToPx(18f));
+    }
+
+    public void setDirection(int direction) {
+        this.direction = direction;
     }
 
 
+    // TODO: move out X (& Y?)label creator
     public void setChart(Chart chart, Function<Long, String> labelCreator) {
-        this.chart = chart;
+        // Computing X labels
+        int size = chart.x.length;
+        xLabels = new ArrayList<>(size);
 
-        xLabels = new ArrayList<>();
-        for (int i = 0, size = chart.x.length; i < size; i++) {
+        // Computing max levels for all label positions
+        for (int i = 0; i < size; i++) {
             String title = labelCreator.call(chart.x[i]);
-            // Computing max levels in reversed order to ensure last value is always shown
-            int maxLevel = getLabelMaxLevel(size - 1 - i);
-            xLabels.add(new XLabel(title, maxLevel));
+            int pos = direction > 0 ? i : size - 1 - i;
+            int level = getLabelMaxLevel(pos);
+            xLabels.add(new XLabel(title, level));
         }
 
-        pathsOrig = new ArrayList<>();
-        pathsTransformed = new ArrayList<>();
-        for (Chart.Line line : chart.lines) {
-            Path path = new Path();
-            for (int i = 0, size = line.y.length; i < size; i++) {
-                if (i == 0) {
-                    path.moveTo(0f, line.y[0]);
-                } else {
-                    path.lineTo(i, line.y[i]);
-                }
-            }
-
-            pathsOrig.add(path);
-            pathsTransformed.add(new Path());
-        }
-
-        pathsPaints = new ArrayList<>();
-        for (Chart.Line line : chart.lines) {
-            Paint paint = new Paint(pathPaintTemplate);
-            paint.setColor(line.color);
-            pathsPaints.add(paint);
-        }
-
-        // Show entire chart by default
-        showRange(0, chart.x.length - 1);
+        setChart(chart);
     }
 
-
     /**
-     * Specifies x-range to be shown. Chart should already be set before calling this method.
-     */
-    public void showRange(int from, int to) {
-        xRange.set(from, to);
-
-        // TODO: Get max in given interval only
-        int maxY = Integer.MIN_VALUE;
-        for (Chart.Line line : chart.lines) {
-            for (int y : line.y) {
-                maxY = maxY < y ? y : maxY;
-            }
-        }
-
-        yRange.set(0, maxY);
-
-        // Ensure we have enough values to show guides
-        if (yRange.size() < yGuidesCount) {
-            yRange.to = yRange.from + yGuidesCount;
-        }
-
-        float[] guides = new float[yGuidesCount];
-        for (int i = 0; i < yGuidesCount; i++) {
-            guides[i] = yRange.from + yRange.size() * i / (yGuidesCount - 1f);
-        }
-
-        yGuidesOrig = new YGuides(guides);
-        yGuidesTransformed = new YGuides(Arrays.copyOf(guides, guides.length));
-
-        prepareChartIfReady();
-    }
-
-
-    /**
-     * Computes max level at which label on this position is still shown.
-     * Where levels are powers of 2.
+     * Computes max level (powers of 2) at which label on this position should still be shown.
      */
     private int getLabelMaxLevel(int ind) {
         if (ind == 0) {
@@ -150,102 +88,155 @@ public class ChartView extends View {
 
         // Label's max possible level is a biggest power of 2 which divides label position.
         // E.g. max level for 12 is 4, max level for 8 is 8.
-        // This can be computed as a number of trailing zeros in label index binary representation.
-        return ChartMath.countTrailingZeroBits(ind);
+        // This can be computed as a number of trailing zeros in index binary representation.
+        return 1 << ChartMath.countTrailingZeroBits(ind);
+    }
+
+    @Override
+    public void setRange(int fromX, int toX, boolean animateY) {
+        super.setRange(fromX, toX, animateY);
+
+        initRangesIfReady();
+    }
+
+
+    public void snap(boolean animate) {
+        Range range = getRangeX();
+        int size = getChart().x.length;
+
+        // Calculating new from / to range which will nicely fit entire screen width
+
+        if (range.size() < 2 * xLabelsMinCount) {
+            return; // No snapping needed
+        }
+
+        // Closest "nice" size
+        int newSize = (range.size() / xLabelsLevel) * xLabelsLevel + 1;
+
+        // Closest "nice" from / to range
+        int newTo;
+        int newFrom;
+
+        if (direction > 0) {
+            newFrom = Math.round(range.from / (float) xLabelsLevel) * xLabelsLevel;
+            newTo = newFrom + newSize - 1;
+
+            // Switching to other closest position if we went outside of allowed range
+            if (newTo >= size) {
+                newTo -= xLabelsLevel;
+                newFrom -= xLabelsLevel;
+            }
+        } else {
+            int to = size - 1 - range.to;
+            newTo = size - 1 - Math.round(to / (float) xLabelsLevel) * xLabelsLevel;
+            newFrom = newTo - newSize + 1;
+
+            // Switching to other closest position if we went outside of allowed range
+            if (newFrom < 0) {
+                newTo += xLabelsLevel;
+                newFrom += xLabelsLevel;
+            }
+        }
+
+        // Applying new "nice" range
+        if (range.from != newFrom || range.to != newTo) {
+            setRange(newFrom, newTo, animate);
+        }
     }
 
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
+        super.onSizeChanged(width, height, oldWidth, oldHeight);
 
         // Calculating minimum number of labels which should fit view's width.
         // E.g. if width = 320 and max width = 50 then min labels count = 3.
-        xLabelsMinCount = ((int) (getMeasuredWidth() / xLabelMaxWidth) + 1) / 2;
+        xLabelsMinCount = ((int) (width / xLabelMaxWidth) + 1) / 2;
         // Min labels number cannot be less than 2
         xLabelsMinCount = Math.max(2, xLabelsMinCount);
 
-        prepareChartIfReady();
+        initRangesIfReady();
     }
 
 
-    private void prepareChartIfReady() {
-        if (xLabelsMinCount == 0) {
-            return; // Not measured yet
+    private void initRangesIfReady() {
+        if (!isReady()) {
+            return;
         }
 
-        int xSize = xRange.size();
-        if (xSize <= 1) {
-            return; // No valid x range is set
+        // Preparing new Y guides
+        Range rangeY = getRangeY();
+        for (int i = 0; i < Y_GUIDES_COUNT; i++) {
+            yGuides.orig[i] = rangeY.from + (rangeY.size() - 1f) * i / (Y_GUIDES_COUNT - 1f);
         }
 
-        int ySize = yRange.size();
-        if (ySize <= 1) {
-            return; // No valid y range is set
-        }
+        // Setting up X labels
+        xLabelsLevel = calcLabelsLevel(getRangeX().size());
+    }
 
+    private int calcLabelsLevel(int size) {
         // Number of labels we can shown at the same time without hiding them is
         // [xLabelsMinCount, 2 * xLabelsMinCount - 1).
         // If there are more x values needs to be shown then we have to hide some of the labels.
         // Overall we will only show every 2^x (== xLabelsLevel) labels, so we need to find out
         // what level should be used for given number of x values.
 
-        if (xSize < 2 * xLabelsMinCount) {
+        if (size < 2 * xLabelsMinCount) {
             // Maximum number of labels we can show without hiding them is (2 * xLabelsMinCount - 1)
-            xLabelsLevel = 1;
+            return 1;
         } else {
             // Current level can be calculated as a maximum power of 2 that is less or equal to
             // the number of items in maximum possible interval.
-            double intervalSize = (xSize - 2.0) / (xLabelsMinCount - 1.0);
+            double intervalSize = (size - 2.0) / (xLabelsMinCount - 1.0);
             double log2 = Math.log(intervalSize) / Math.log(2f);
-            xLabelsLevel = (int) Math.pow(2f, (int) log2);
-        }
-
-        float chartScaleX = getMeasuredWidth() / (xSize - 1f);
-        float chartScaleY = getMeasuredHeight() / (ySize - 1f);
-        float left = -xRange.from * chartScaleX;
-
-        chartMatrix.setScale(chartScaleX, chartScaleY);
-        chartMatrix.postScale(1f, -1f); // Flip along X axis
-        chartMatrix.postTranslate(left, getMeasuredHeight()); // Translate to place
-
-        // Transforming paths for drawing
-        for (int i = 0, size = pathsOrig.size(); i < size; i++) {
-            pathsOrig.get(i).transform(chartMatrix, pathsTransformed.get(i));
-        }
-
-        for (int i = 0, size = yGuidesOrig.values.length; i < size; i++) {
-            tmpFloatPoint[0] = 0f;
-            tmpFloatPoint[1] = yGuidesOrig.values[i];
-            chartMatrix.mapPoints(tmpFloatPoint);
-            yGuidesTransformed.values[i] = tmpFloatPoint[1];
+            return (int) Math.pow(2f, (int) log2);
         }
     }
 
 
     @Override
     protected void onDraw(Canvas canvas) {
+        if (!isReady()) {
+            return;
+        }
+
+        float left = getPaddingLeft();
+        float right = getWidth() - getPaddingRight();
+
+        // Drawing Y guides
+        yGuides.transform(getChartMatrix());
+        for (float guideY : yGuides.transformed) {
+            canvas.drawLine(left, guideY, right, guideY, yGuidesPaint);
+        }
+
+        // Drawing chart
         super.onDraw(canvas);
 
-        if (chart != null) { // Chart is initialized
+        // Drawing X labels
+        Range rangeX = getRangeX();
+        float labelPosY = getHeight() - getPaddingBottom();
+        float dotPosY = yGuides.transformed[0];
 
-            // Drawing guides
-            for (float guideY : yGuidesTransformed.values) {
-                canvas.drawLine(0f, guideY, getWidth(), guideY, yGuidesPaint);
-            }
+        // Measure visible labels (if not measured yet)
+        //for (int i = rangeX.from; i <= rangeX.to; i++) {
+        //    XLabel label = xLabels.get(i);
+        //    boolean show = label.maxLevel >= xLabelsLevel;
+        //    if (show && Float.isNaN(label.width)) {
+        //        xLabelPaint.getTextBounds(label.title, 0, label.title.length(), textBounds);
+        //        label.width = textBounds.width();
+        //    }
+        //}
 
-            for (int i = 0, size = pathsTransformed.size(); i < size; i++) {
-                canvas.drawPath(pathsTransformed.get(i), pathsPaints.get(i));
+        for (int i = rangeX.from; i <= rangeX.to; i++) {
+            XLabel label = xLabels.get(i);
+            boolean show = label.maxLevel >= xLabelsLevel;
+            if (show) {
+                float labelPosX = ChartMath.mapX(getChartMatrix(), i);
+                canvas.drawText(label.title, labelPosX, labelPosY, xLabelPaint);
+                canvas.drawPoint(labelPosX, dotPosY, xLabelDotPaint);
             }
         }
     }
-
-
-    private float dpToPx(float value) {
-        return TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, value, getResources().getDisplayMetrics());
-    }
-
 
     private static class XLabel {
         final String title;
@@ -257,29 +248,26 @@ public class ChartView extends View {
         }
     }
 
-    private class YGuides {
-        final float[] values;
+    private static class YGuides {
+
+        final float[] orig;
+        final float[] transformed;
+        long animationStartedAt;
+        float state;
 
         YGuides(float[] values) {
-            this.values = values;
-        }
-    }
-
-    private class Range {
-        int from;
-        int to;
-
-        Range(int from, int to) {
-            set(from, to);
+            orig = values;
+            transformed = Arrays.copyOf(values, values.length);
         }
 
-        void set(int from, int to) {
-            this.from = from;
-            this.to = to;
+        YGuides(YGuides guides) {
+            this(Arrays.copyOf(guides.orig, guides.orig.length));
         }
 
-        int size() {
-            return to - from;
+        void transform(Matrix matrix) {
+            for (int i = 0, size = orig.length; i < size; i++) {
+                transformed[i] = ChartMath.mapY(matrix, orig[i]);
+            }
         }
     }
 

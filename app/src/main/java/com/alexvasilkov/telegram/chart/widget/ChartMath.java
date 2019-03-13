@@ -1,5 +1,7 @@
 package com.alexvasilkov.telegram.chart.widget;
 
+import android.graphics.Matrix;
+
 class ChartMath {
 
     // This is a pre-computed zero-bits lookup table (maps a bit value mod 37 to its position)
@@ -9,6 +11,8 @@ class ChartMath {
             20, 8, 19, 18
     };
 
+    private static final float[] tmpFloatPoint = new float[2];
+
     /**
      * Counts trailing zeros at O(1).
      *
@@ -16,6 +20,21 @@ class ChartMath {
      */
     static int countTrailingZeroBits(int x) {
         return trailingZeroLookup[(-x & x) % 37];
+    }
+
+
+    static float mapX(Matrix matrix, float x) {
+        tmpFloatPoint[0] = x;
+        tmpFloatPoint[1] = 0f;
+        matrix.mapPoints(tmpFloatPoint);
+        return tmpFloatPoint[0];
+    }
+
+    static float mapY(Matrix matrix, float y) {
+        tmpFloatPoint[0] = 0f;
+        tmpFloatPoint[1] = y;
+        matrix.mapPoints(tmpFloatPoint);
+        return tmpFloatPoint[1];
     }
 
 }
