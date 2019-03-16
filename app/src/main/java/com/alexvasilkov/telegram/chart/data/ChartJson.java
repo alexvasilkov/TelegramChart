@@ -4,18 +4,56 @@ import android.graphics.Color;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-// Gson will assign all the local fields for us
-@SuppressWarnings("unused")
 class ChartJson {
 
-    private Object[][] columns;
-    private Map<String, String> types;
-    private Map<String, String> names;
-    private Map<String, String> colors;
+    private final Object[][] columns;
+    private final Map<String, String> types;
+    private final Map<String, String> names;
+    private final Map<String, String> colors;
+
+    ChartJson(JSONObject object) throws JSONException {
+        this.columns = toArrayOfArrays(object.getJSONArray("columns"));
+        this.types = toMap(object.getJSONObject("types"));
+        this.names = toMap(object.getJSONObject("names"));
+        this.colors = toMap(object.getJSONObject("colors"));
+    }
+
+
+    private static Map<String, String> toMap(JSONObject object) throws JSONException {
+        Map<String, String> map = new HashMap<>();
+        for (Iterator<String> iterator = object.keys(); iterator.hasNext(); ) {
+            String key = iterator.next();
+            map.put(key, object.getString(key));
+
+        }
+        return map;
+    }
+
+    private static Object[][] toArrayOfArrays(JSONArray array) throws JSONException {
+        Object[][] result = new Object[array.length()][];
+        for (int i = 0, size = result.length; i < size; i++) {
+            result[i] = toArray(array.getJSONArray(i));
+        }
+        return result;
+    }
+
+    private static Object[] toArray(JSONArray array) throws JSONException {
+        Object[] result = new Object[array.length()];
+        for (int i = 0, size = result.length; i < size; i++) {
+            result[i] = array.get(i);
+        }
+        return result;
+    }
 
 
     Chart convert() {
@@ -73,7 +111,7 @@ class ChartJson {
     private static long[] getLongValues(Object[] values) {
         long[] result = new long[values.length - 1];
         for (int i = 1, size = values.length; i < size; i++) {
-            result[i - 1] = ((Double) values[i]).longValue();
+            result[i - 1] = (long) values[i];
         }
         return result;
     }
@@ -81,7 +119,7 @@ class ChartJson {
     private static int[] getIntValues(Object[] values) {
         int[] result = new int[values.length - 1];
         for (int i = 1, size = values.length; i < size; i++) {
-            result[i - 1] = ((Double) values[i]).intValue();
+            result[i - 1] = (int) values[i];
         }
         return result;
     }

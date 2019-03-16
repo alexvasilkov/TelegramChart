@@ -14,8 +14,6 @@ import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
 
-import androidx.annotation.Nullable;
-
 public class ChartFinderView extends BaseChartView {
 
     private final float handleWidth = dpToPx(6);
@@ -32,7 +30,7 @@ public class ChartFinderView extends BaseChartView {
     private ChartView chartView;
 
 
-    public ChartFinderView(Context context, @Nullable AttributeSet attrs) {
+    public ChartFinderView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         handlePaint.setStyle(Paint.Style.FILL);

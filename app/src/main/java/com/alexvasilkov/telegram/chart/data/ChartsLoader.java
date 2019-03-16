@@ -7,8 +7,9 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -16,32 +17,36 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import androidx.annotation.WorkerThread;
-
 public class ChartsLoader {
 
     private static final String TAG = ChartsLoader.class.getSimpleName();
     private static final String CHARTS_FILE = "chart_data.json";
 
-    public static void loadCharts(Context appContext, Listener<List<Chart>> listener) {
+    public static void loadCharts(
+            Context appContext,
+            Listener<List<Chart>> listener,
+            Listener<Throwable> error
+    ) {
         // A simple handling for fast background tasks
         new Thread(() -> {
-            final List<Chart> charts = loadChartsInBackground(appContext);
-            new Handler(Looper.getMainLooper()).post(() -> listener.onResult(charts));
+            try {
+                final List<Chart> charts = loadChartsInBackground(appContext);
+                new Handler(Looper.getMainLooper()).post(() -> listener.onResult(charts));
+            } catch (Throwable ex) {
+                new Handler(Looper.getMainLooper()).post(() -> error.onResult(ex));
+            }
         }).start();
     }
 
-    @WorkerThread
-    private static List<Chart> loadChartsInBackground(Context appContext) {
-        String jsonFile = readAsset(appContext.getAssets(), CHARTS_FILE);
-        List<ChartJson> jsonCharts =
-                new Gson().fromJson(jsonFile, new TypeToken<List<ChartJson>>() {}.getType());
+    private static List<Chart> loadChartsInBackground(Context appContext) throws JSONException {
+        return parseJson(readAsset(appContext.getAssets(), CHARTS_FILE));
+    }
 
+    private static List<Chart> parseJson(String json) throws JSONException {
+        JSONArray array = new JSONArray(json);
         List<Chart> charts = new ArrayList<>();
-        if (jsonCharts != null) {
-            for (ChartJson json : jsonCharts) {
-                charts.add(json.convert());
-            }
+        for (int i = 0, size = array.length(); i < size; i++) {
+            charts.add(new ChartJson(array.getJSONObject(i)).convert());
         }
         return charts;
     }

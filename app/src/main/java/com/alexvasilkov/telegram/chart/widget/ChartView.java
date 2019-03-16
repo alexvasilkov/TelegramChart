@@ -16,15 +16,15 @@ import com.alexvasilkov.telegram.chart.utils.Range;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
-
-import androidx.annotation.Nullable;
 
 public class ChartView extends BaseChartView {
 
     private static final int Y_GUIDES_COUNT = 6;
 
     private static final Rect textBounds = new Rect();
+
+    private final int topInset = (int) dpToPx(20f);
+    private final int bottomInset = (int) dpToPx(16f);
 
     private final float xLabelPadding = dpToPx(10f);
     private final float yLabelPaddingBottom = dpToPx(5f);
@@ -43,11 +43,12 @@ public class ChartView extends BaseChartView {
     private final Paint yLabelStrokePaint = new Paint(PAINT_FLAGS);
 
     private int direction = 1;
-    private Function<Long, String> labelCreator;
+    private Function<Long, String> xLabelCreator;
+    private Function<Integer, String> yLabelCreator;
     private RangeListener xRangeListener;
 
 
-    public ChartView(Context context, @Nullable AttributeSet attrs) {
+    public ChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         yGuidesPaint.setStyle(Paint.Style.STROKE);
@@ -69,15 +70,19 @@ public class ChartView extends BaseChartView {
         xLabelDotPaint.setColor(Color.parseColor("#E1E1E1"));
         xLabelDotPaint.setStrokeCap(Paint.Cap.ROUND);
 
-        setInsets(0, (int) dpToPx(20f), 0, (int) dpToPx(18f));
+        setInsets(0, topInset, 0, bottomInset);
     }
 
     public void setDirection(int direction) {
         this.direction = direction;
     }
 
-    public void setLabelCreator(Function<Long, String> creator) {
-        labelCreator = creator;
+    public void setXLabelCreator(Function<Long, String> creator) {
+        xLabelCreator = creator;
+    }
+
+    public void setYLabelCreator(Function<Integer, String> creator) {
+        yLabelCreator = creator;
     }
 
     public void setXRangeListener(RangeListener listener) {
@@ -111,29 +116,35 @@ public class ChartView extends BaseChartView {
         fromY = fromY > 0f ? 0f : fromY;
         toY = toY < 0f ? 0f : toY;
 
-        // Ensure we have minimum possible Y values
-        if (toY - fromY + 1 < Y_GUIDES_COUNT) {
-            toY = fromY + Y_GUIDES_COUNT - 1;
-        }
+        // Adjusting Y range to better fit chart height + extra inset on top.
+        // Final range will be divisible by the number of intervals, to have integer guide values.
+        final int yIntervals = Y_GUIDES_COUNT - 1;
+        final int chartHeight = getChartPosition().height();
+        final float minToY = toY - (toY - fromY) * topInset / (chartHeight + topInset);
 
+        fromY = (int) Math.floor(fromY / yIntervals) * yIntervals;
+        toY = (int) Math.ceil(minToY / yIntervals) * yIntervals;
+
+        // Setting up new Y guides if Y range is changed
         if (yRangeEnd.from != fromY || yRangeEnd.to != toY) {
             // We wont animate the very first guides
             boolean animate = yGuides != null;
 
             if (yGuides != null) {
+                // Animating out old Y guides
                 yGuidesOld.add(yGuides);
                 yGuides.animation.animateTo(0f);
             }
 
             // Preparing new Y guides
-            yGuides = new YGuides(Y_GUIDES_COUNT);
-            for (int i = 0; i < Y_GUIDES_COUNT; i++) {
-                // TODO: Should be int?
-                float value = fromY + (toY - fromY) * i / (Y_GUIDES_COUNT - 1f);
+            yGuides = new YGuides(yIntervals + 1);
+            for (int i = 0; i <= yIntervals; i++) {
+                final int value = (int) (fromY + (toY - fromY) * i / yIntervals);
                 yGuides.orig[i] = value;
-                // TODO: use external converter?
-                yGuides.titles[i] = String.format(Locale.US, "%.0f", value);
+                yGuides.titles[i] = yLabelCreator == null
+                        ? String.valueOf(value) : yLabelCreator.call(value);
             }
+
             if (animate) {
                 yGuides.animation.setTo(0f); // Setting initial hidden state
                 yGuides.animation.animateTo(1f); // Animating to visible state
@@ -159,7 +170,8 @@ public class ChartView extends BaseChartView {
         final String[] titles = new String[size];
 
         for (int i = 0; i < size; i++) {
-            titles[i] = labelCreator.call(chart.x[i]);
+            titles[i] = xLabelCreator == null
+                    ? String.valueOf(chart.x[i]) : xLabelCreator.call(chart.x[i]);
             widths[i] = measureXLabel(titles[i]);
             maxLabelWidth = Math.max(maxLabelWidth, widths[i]);
         }
@@ -424,6 +436,11 @@ public class ChartView extends BaseChartView {
             XLabel label = xLabels.get(i);
 
             if (!label.animation.isSet()) {
+                continue;
+            }
+
+            // Ignore labels from deeper levels, to avoid labels stacking
+            if (label.level < xLabelsLevel / 2) {
                 continue;
             }
 

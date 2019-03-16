@@ -15,8 +15,6 @@ import com.alexvasilkov.telegram.chart.utils.AnimationState;
 import com.alexvasilkov.telegram.chart.utils.ChartAnimator;
 import com.alexvasilkov.telegram.chart.utils.Range;
 
-import androidx.annotation.Nullable;
-
 class BaseChartView extends View {
 
     protected static final int PAINT_FLAGS = Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG;
@@ -48,7 +46,7 @@ class BaseChartView extends View {
     private final Rect chartPos = new Rect();
 
 
-    protected BaseChartView(Context context, @Nullable AttributeSet attrs) {
+    protected BaseChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         animator = new ChartAnimator(this, this::onAnimationStep);
