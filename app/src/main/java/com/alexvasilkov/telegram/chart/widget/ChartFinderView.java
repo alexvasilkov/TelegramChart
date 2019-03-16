@@ -23,7 +23,7 @@ public class ChartFinderView extends BaseChartView {
     private final float handlesMinDistance = dpToPx(10);
 
     private final Range handleRange = new Range();
-    private final Paint handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private final Paint handlePaint = new Paint(PAINT_FLAGS);
     private Integer selectedHandle; // -1 for left, 1 for right and 0 for both
     private boolean firstScrollEvent;
 

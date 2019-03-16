@@ -19,9 +19,11 @@ import androidx.annotation.Nullable;
 
 class BaseChartView extends View {
 
+    protected static final int PAINT_FLAGS = Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG;
+
     private final ChartAnimator animator;
     private final Path path = new Path();
-    private final Paint pathPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private final Paint pathPaint = new Paint(PAINT_FLAGS);
     protected final Matrix matrix = new Matrix();
 
     private final Range pendingRange = new Range();
@@ -32,12 +34,12 @@ class BaseChartView extends View {
     protected final Range xRangeExt = new Range();
     private final Range xRangeStart = new Range();
     protected final Range xRangeEnd = new Range();
-    private AnimationState xRangeState;
+    private final AnimationState xRangeState = new AnimationState();
 
     protected final Range yRange = new Range();
     private final Range yRangeStart = new Range();
     protected final Range yRangeEnd = new Range();
-    private AnimationState yRangeState;
+    private final AnimationState yRangeState = new AnimationState();
 
     protected Chart chart;
     protected final Range chartRange = new Range();
@@ -193,12 +195,13 @@ class BaseChartView extends View {
             if (xRangeEnd.from != fromX || xRangeEnd.to != toX) {
                 // Starting X range animation
                 xRangeStart.set(xRange);
-                xRangeState = new AnimationState();
+                xRangeState.setTo(0f);
+                xRangeState.animateTo(1f);
             }
         } else {
             // Immediately setting final Y range
             xRange.set(fromX, toX);
-            xRangeState = null;
+            xRangeState.reset();
         }
 
         xRangeEnd.set(fromX, toX);
@@ -209,12 +212,13 @@ class BaseChartView extends View {
             if (yRangeEnd.from != fromY || yRangeEnd.to != toY) {
                 // Starting Y range animation
                 yRangeStart.set(yRange);
-                yRangeState = new AnimationState();
+                yRangeState.setTo(0f);
+                yRangeState.animateTo(1f);
             }
         } else {
             // Immediately setting final Y range
             yRange.set(fromY, toY);
-            yRangeState = null;
+            yRangeState.reset();
         }
 
         yRangeEnd.set(fromY, toY);
@@ -223,25 +227,19 @@ class BaseChartView extends View {
     protected boolean onAnimationStep() {
         onUpdateChartState();
 
-        // Checking animations states
-        if (xRangeState != null && xRangeState.getState() == 1f) {
-            xRangeState = null;
-        }
-        if (yRangeState != null && yRangeState.getState() == 1f) {
-            yRangeState = null;
-        }
-
-        return xRangeState != null || yRangeState != null;
+        return !xRangeState.isFinished() || !yRangeState.isFinished();
     }
 
     protected void onUpdateChartState() {
         // Updating X range if animating
-        if (xRangeState != null) {
+        if (!xRangeState.isFinished()) {
+            xRangeState.update();
             xRange.interpolate(xRangeStart, xRangeEnd, xRangeState.getState());
         }
 
         // Updating Y range if animating
-        if (yRangeState != null) {
+        if (!yRangeState.isFinished()) {
+            yRangeState.update();
             yRange.interpolate(yRangeStart, yRangeEnd, yRangeState.getState());
         }
 

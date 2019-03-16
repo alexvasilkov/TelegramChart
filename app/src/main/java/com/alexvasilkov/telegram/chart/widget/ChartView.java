@@ -14,8 +14,9 @@ import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 import androidx.annotation.Nullable;
 
@@ -26,17 +27,20 @@ public class ChartView extends BaseChartView {
     private static final Rect textBounds = new Rect();
 
     private final float xLabelPadding = dpToPx(10f);
+    private final float yLabelPaddingBottom = dpToPx(5f);
 
-    private final YGuides yGuides = new YGuides(new float[Y_GUIDES_COUNT]);
+    private YGuides yGuides;
     private final List<YGuides> yGuidesOld = new ArrayList<>();
-    private final Paint yGuidesPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private final Paint yGuidesPaint = new Paint(PAINT_FLAGS);
 
     private List<XLabel> xLabels;
     private float xMaxIntervals;
 
     private float xLabelsLevel;
-    private final Paint xLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-    private final Paint xLabelDotPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+    private final Paint xLabelPaint = new Paint(PAINT_FLAGS);
+    private final Paint xLabelDotPaint = new Paint(PAINT_FLAGS);
+    private final Paint yLabelPaint = new Paint(PAINT_FLAGS);
+    private final Paint yLabelStrokePaint = new Paint(PAINT_FLAGS);
 
     private int direction = 1;
     private Function<Long, String> labelCreator;
@@ -53,11 +57,19 @@ public class ChartView extends BaseChartView {
         xLabelPaint.setTextSize(dpToPx(12f));
         xLabelPaint.setColor(Color.parseColor("#96a2aa"));
 
+        yLabelPaint.setTextSize(dpToPx(12f));
+        yLabelPaint.setColor(Color.parseColor("#96a2aa"));
+
+        yLabelStrokePaint.set(yLabelPaint);
+        yLabelStrokePaint.setStyle(Paint.Style.STROKE);
+        yLabelStrokePaint.setStrokeWidth(dpToPx(2f));
+        yLabelStrokePaint.setColor(Color.parseColor("#F1F1F1"));
+
         xLabelDotPaint.setStrokeWidth(dpToPx(2f));
         xLabelDotPaint.setColor(Color.parseColor("#E1E1E1"));
         xLabelDotPaint.setStrokeCap(Paint.Cap.ROUND);
 
-        setInsets(0, 0, 0, (int) dpToPx(18f));
+        setInsets(0, (int) dpToPx(20f), 0, (int) dpToPx(18f));
     }
 
     public void setDirection(int direction) {
@@ -74,7 +86,12 @@ public class ChartView extends BaseChartView {
 
     @Override
     public void setChart(Chart newChart) {
-        xLabels = null; // Invalidating X labels
+        // Invalidating X labels
+        xLabels = null;
+
+        // Invalidating Y guides
+        yGuides = null;
+        yGuidesOld.clear();
 
         super.setChart(newChart);
     }
@@ -99,9 +116,30 @@ public class ChartView extends BaseChartView {
             toY = fromY + Y_GUIDES_COUNT - 1;
         }
 
-        // Preparing new Y guides
-        for (int i = 0; i < Y_GUIDES_COUNT; i++) {
-            yGuides.orig[i] = fromY + (toY - fromY) * i / (Y_GUIDES_COUNT - 1f);
+        if (yRangeEnd.from != fromY || yRangeEnd.to != toY) {
+            // We wont animate the very first guides
+            boolean animate = yGuides != null;
+
+            if (yGuides != null) {
+                yGuidesOld.add(yGuides);
+                yGuides.animation.animateTo(0f);
+            }
+
+            // Preparing new Y guides
+            yGuides = new YGuides(Y_GUIDES_COUNT);
+            for (int i = 0; i < Y_GUIDES_COUNT; i++) {
+                // TODO: Should be int?
+                float value = fromY + (toY - fromY) * i / (Y_GUIDES_COUNT - 1f);
+                yGuides.orig[i] = value;
+                // TODO: use external converter?
+                yGuides.titles[i] = String.format(Locale.US, "%.0f", value);
+            }
+            if (animate) {
+                yGuides.animation.setTo(0f); // Setting initial hidden state
+                yGuides.animation.animateTo(1f); // Animating to visible state
+            } else {
+                yGuides.animation.setTo(1f); // Setting initial visible state
+            }
         }
 
         super.onRangeSet(fromX, toX, fromY, toY, animateX, animateY);
@@ -261,7 +299,7 @@ public class ChartView extends BaseChartView {
             }
         }
 
-        // Applying new "nice" range
+        // Applying new closes range
         if (range.from != closestFrom || range.to != closestTo) {
             setRange(closestFrom, closestTo, animate, animate);
         }
@@ -274,10 +312,18 @@ public class ChartView extends BaseChartView {
 
         // Checking X labels animations states
         for (XLabel label : xLabels) {
-            if (label.animation != null && label.state == label.targetState) {
-                label.animation = null;
+            result |= !label.animation.isFinished();
+        }
+
+        // Checking Y guides animations states
+        result |= !yGuides.animation.isFinished();
+
+        for (Iterator<YGuides> iterator = yGuidesOld.iterator(); iterator.hasNext(); ) {
+            boolean finished = iterator.next().animation.isFinished();
+            if (finished) {
+                iterator.remove();
             }
-            result |= label.animation != null;
+            result |= !finished;
         }
 
         return result;
@@ -289,7 +335,13 @@ public class ChartView extends BaseChartView {
 
         // Calculating current X labels level
         xLabelsLevel = computeCurrentLevel(xRange.size(), xMaxIntervals);
-        setLabelsVisibility();
+        setXLabelsVisibility();
+
+        yGuides.transform(matrix);
+        for (YGuides guides : yGuidesOld) {
+            guides.transform(matrix);
+        }
+        setYGuidesVisibility();
 
         if (xRangeListener != null) {
             xRangeListener.onRangeChanged(xRange.from, xRange.to);
@@ -297,7 +349,7 @@ public class ChartView extends BaseChartView {
     }
 
 
-    private void setLabelsVisibility() {
+    private void setXLabelsVisibility() {
         final float fromX = xRangeExt.from;
         final float toX = xRangeExt.to;
 
@@ -306,34 +358,25 @@ public class ChartView extends BaseChartView {
 
             // Resetting out-of-range labels
             if (i < fromX || i > toX) {
-                label.state = 0f;
-                label.targetState = Float.NaN;
-                label.animation = null;
+                label.animation.reset();
                 continue;
             }
 
             final boolean show = label.level >= xLabelsLevel;
-            final float toState = show ? 1f : 0f;
 
-            if (Float.isNaN(label.targetState)) {
-                // Setting initial label state
-                label.state = toState;
-                label.targetState = toState;
-                label.animation = null;
+            if (label.animation.isSet()) {
+                label.animation.update();
+                label.animation.animateTo(show ? 1f : 0f);
             } else {
-                // Setting current state value
-                if (label.animation != null) {
-                    float animState = label.animation.getState();
-                    label.state = label.targetState == 1f ? animState : 1f - animState;
-                }
-
-                // Triggering animation if target state is changed
-                if (label.targetState != toState) {
-                    // Animating to target state
-                    label.targetState = toState;
-                    label.animation = new AnimationState(show ? label.state : 1f - label.state);
-                }
+                label.animation.setTo(show ? 1f : 0f);
             }
+        }
+    }
+
+    private void setYGuidesVisibility() {
+        yGuides.animation.update();
+        for (YGuides guides : yGuidesOld) {
+            guides.animation.update();
         }
     }
 
@@ -350,13 +393,19 @@ public class ChartView extends BaseChartView {
         final float right = chartPosition.right;
 
         // Drawing Y guides
-        yGuides.transform(matrix);
-        for (float guideY : yGuides.transformed) {
-            canvas.drawLine(left, guideY, right, guideY, yGuidesPaint);
+        for (YGuides guides : yGuidesOld) {
+            drawYGuides(canvas, guides, left, right);
         }
+        drawYGuides(canvas, yGuides, left, right);
 
         // Drawing chart
         super.onDraw(canvas);
+
+        // Drawing Y labels
+        for (YGuides guides : yGuidesOld) {
+            drawYLabels(canvas, guides, left, right);
+        }
+        drawYLabels(canvas, yGuides, left, right);
 
         // Drawing X labels
         final float fromX = xRange.from;
@@ -374,37 +423,64 @@ public class ChartView extends BaseChartView {
         for (int i = fromExtX; i <= toExtX; i++) {
             XLabel label = xLabels.get(i);
 
-            if (label.state > 0f) {
-                float alpha = label.state;
-
-                final float dotPosX = ChartMath.mapX(matrix, i);
-
-                // Drawing a dot if it is inside internal range
-                if (fromX <= i && i <= toX) {
-                    xLabelDotPaint.setAlpha(Math.round(255 * alpha));
-                    canvas.drawPoint(dotPosX, dotPosY, xLabelDotPaint);
-                }
-
-                // Shifting label's X pos according to its position on screen to fit internal width
-                final float labelShift;
-                if (i < fromX && extraLeft > 0f) {
-                    // Animating label appearance on the left
-                    labelShift = 1f - dotPosX / extraLeft;
-                    alpha *= 1f - labelShift;
-                } else if (i > toX && extraRight > 0f) {
-                    // Animating label appearance on the right
-                    labelShift = 1f - (dotPosX - right) / extraRight;
-                    alpha *= labelShift;
-                } else {
-                    labelShift = (dotPosX - left) / (right - left);
-                }
-
-                final float labelPosX = dotPosX - label.width * labelShift;
-
-                xLabelPaint.setAlpha(Math.round(255 * alpha));
-                canvas.drawText(label.title, labelPosX, labelPosY, xLabelPaint);
+            if (!label.animation.isSet()) {
+                continue;
             }
+
+            float alpha = label.animation.getState();
+
+            final float dotPosX = ChartMath.mapX(matrix, i);
+
+            // Drawing a dot if it is inside internal range
+            if (fromX <= i && i <= toX) {
+                xLabelDotPaint.setAlpha(toAlpha(alpha));
+                canvas.drawPoint(dotPosX, dotPosY, xLabelDotPaint);
+            }
+
+            // Shifting label's X pos according to its position on screen to fit internal width
+            final float labelShift;
+            if (i < fromX && extraLeft > 0f) {
+                // Animating label appearance on the left
+                labelShift = 1f - dotPosX / extraLeft;
+                alpha *= 1f - labelShift;
+            } else if (i > toX && extraRight > 0f) {
+                // Animating label appearance on the right
+                labelShift = 1f - (dotPosX - right) / extraRight;
+                alpha *= labelShift;
+            } else {
+                labelShift = (dotPosX - left) / (right - left);
+            }
+
+            final float labelPosX = dotPosX - label.width * labelShift;
+
+            xLabelPaint.setAlpha(toAlpha(alpha));
+            canvas.drawText(label.title, labelPosX, labelPosY, xLabelPaint);
         }
+    }
+
+    private void drawYGuides(Canvas canvas, YGuides guides, float left, float right) {
+        yGuidesPaint.setAlpha(toAlpha(guides.animation.getState()));
+
+        for (int i = 0, size = guides.size(); i < size; i++) {
+            final float posY = guides.transformed[i];
+            canvas.drawLine(left, posY, right, posY, yGuidesPaint);
+        }
+    }
+
+    private void drawYLabels(Canvas canvas, YGuides guides, float left, float right) {
+        yLabelStrokePaint.setAlpha(toAlpha(guides.animation.getState()));
+        yLabelPaint.setAlpha(toAlpha(guides.animation.getState()));
+
+        for (int i = 0, size = guides.size(); i < size; i++) {
+            final float posY = guides.transformed[i] - yLabelPaddingBottom;
+            canvas.drawText(guides.titles[i], left, posY, yLabelStrokePaint);
+            canvas.drawText(guides.titles[i], left, posY, yLabelPaint);
+        }
+    }
+
+
+    private static int toAlpha(float alpha) {
+        return Math.round(255 * alpha);
     }
 
 
@@ -413,9 +489,7 @@ public class ChartView extends BaseChartView {
         final int level;
         final float width;
 
-        float state;
-        float targetState = Float.NaN;
-        AnimationState animation;
+        final AnimationState animation = new AnimationState();
 
         XLabel(String title, int level, float width) {
             this.title = title;
@@ -425,22 +499,25 @@ public class ChartView extends BaseChartView {
     }
 
     private static class YGuides {
+        final String[] titles;
         final float[] orig;
         final float[] transformed;
+        final AnimationState animation = new AnimationState();
 
-        YGuides(float[] values) {
-            orig = values;
-            transformed = Arrays.copyOf(values, values.length);
-        }
-
-        YGuides(YGuides guides) {
-            this(Arrays.copyOf(guides.orig, guides.orig.length));
+        YGuides(int size) {
+            orig = new float[size];
+            transformed = new float[size];
+            titles = new String[size];
         }
 
         void transform(Matrix matrix) {
             for (int i = 0, size = orig.length; i < size; i++) {
                 transformed[i] = ChartMath.mapY(matrix, orig[i]);
             }
+        }
+
+        int size() {
+            return orig.length;
         }
     }
 

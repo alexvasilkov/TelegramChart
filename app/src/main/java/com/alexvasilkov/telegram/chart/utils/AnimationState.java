@@ -6,19 +6,56 @@ public class AnimationState {
 
     private static final float DURATION = 300f;
 
-    private final long startedAt;
+    private float targetState = Float.NaN;
+    private float state = Float.NaN;
+    private long startedAt = 0L;
 
-    public AnimationState() {
-        this(0f);
-    }
+    public void update() {
+        if (isSet() && startedAt != 0L) {
+            float animState = (SystemClock.elapsedRealtime() - startedAt) / DURATION;
+            animState = animState < 0f ? 0f : (animState > 1f ? 1f : animState);
 
-    public AnimationState(float state) {
-        startedAt = SystemClock.elapsedRealtime() - (long) (DURATION * state);
+            state = targetState == 1f ? animState : 1f - animState;
+        }
     }
 
     public float getState() {
-        float state = (SystemClock.elapsedRealtime() - startedAt) / DURATION;
-        return state < 0f ? 0f : (state > 1f ? 1f : state);
+        return state;
+    }
+
+    public void reset() {
+        targetState = Float.NaN;
+        state = Float.NaN;
+        startedAt = 0L;
+    }
+
+    public boolean isSet() {
+        return !Float.isNaN(targetState) && !Float.isNaN(state);
+    }
+
+    public void setTo(float target) {
+        // Setting initial value without animation
+        targetState = target;
+        state = target;
+        startedAt = 0L;
+    }
+
+    public void animateTo(float target) {
+        if (isSet() && targetState != target) {
+            // Starting reversed animation if needed
+            targetState = target;
+
+            if (state == target) {
+                startedAt = 0L; // No animation needed
+            } else {
+                float animState = target == 1f ? state : 1f - state;
+                startedAt = SystemClock.elapsedRealtime() - (long) (DURATION * animState);
+            }
+        }
+    }
+
+    public boolean isFinished() {
+        return !isSet() || targetState == state;
     }
 
 }
