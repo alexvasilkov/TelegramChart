@@ -20,6 +20,10 @@ public class ChartAnimator {
         scheduleNextStep();
     }
 
+    public void stop() {
+        scheduleNextStep();
+    }
+
     private void update() {
         boolean continueAnimation = listener.onStep();
         view.invalidate();

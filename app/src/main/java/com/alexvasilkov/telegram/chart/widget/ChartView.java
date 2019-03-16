@@ -25,23 +25,22 @@ public class ChartView extends BaseChartView {
 
     private static final Rect textBounds = new Rect();
 
-    private final float xLabelMaxWidth = dpToPx(50f);
+    private final float xLabelPadding = dpToPx(10f);
 
     private final YGuides yGuides = new YGuides(new float[Y_GUIDES_COUNT]);
     private final List<YGuides> yGuidesOld = new ArrayList<>();
     private final Paint yGuidesPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
 
     private List<XLabel> xLabels;
-    private int xLabelsLevel;
-    private int xLabelsMinCount;
+    private float xMaxIntervals;
+
+    private float xLabelsLevel;
     private final Paint xLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private final Paint xLabelDotPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
 
-    private boolean animateLabels;
-
     private int direction = 1;
     private Function<Long, String> labelCreator;
-    private RangeListener rangeListener;
+    private RangeListener xRangeListener;
 
 
     public ChartView(Context context, @Nullable AttributeSet attrs) {
@@ -58,8 +57,6 @@ public class ChartView extends BaseChartView {
         xLabelDotPaint.setColor(Color.parseColor("#E1E1E1"));
         xLabelDotPaint.setStrokeCap(Paint.Cap.ROUND);
 
-        setIncludeZeroY(true);
-        setMinSizeY(Y_GUIDES_COUNT);
         setInsets(0, 0, 0, (int) dpToPx(18f));
     }
 
@@ -67,161 +64,206 @@ public class ChartView extends BaseChartView {
         this.direction = direction;
     }
 
-    public void setLabelCreator(Function<Long, String> labelCreator) {
-        this.labelCreator = labelCreator;
+    public void setLabelCreator(Function<Long, String> creator) {
+        labelCreator = creator;
     }
 
-    public void setRangeListener(RangeListener rangeListener) {
-        this.rangeListener = rangeListener;
-    }
-
-
-    public void setChart(Chart chart) {
-        // Computing X labels
-        int size = chart.x.length;
-        xLabels = new ArrayList<>(size);
-
-        // Computing max levels for all label positions
-        for (int i = 0; i < size; i++) {
-            String title = labelCreator.call(chart.x[i]);
-            int pos = direction > 0 ? i : size - 1 - i;
-            int level = getLabelMaxLevel(pos);
-            xLabels.add(new XLabel(title, level));
-        }
-
-        animateLabels = false; // Do not animate on first start
-
-        // Should be called in the end after X labels are initialized
-        super.setChart(chart);
-    }
-
-    /**
-     * Computes max level (powers of 2) at which label on this position should still be shown.
-     */
-    private int getLabelMaxLevel(int ind) {
-        if (ind == 0) {
-            return Integer.MAX_VALUE; // First label is always shown
-        }
-
-        // Label's max possible level is a biggest power of 2 which divides label position.
-        // E.g. max level for 12 is 4, max level for 8 is 8.
-        // This can be computed as a number of trailing zeros in index binary representation.
-        return 1 << ChartMath.countTrailingZeroBits(ind);
+    public void setXRangeListener(RangeListener listener) {
+        xRangeListener = listener;
     }
 
     @Override
-    public void setRange(float fromX, float toX, boolean animateX, boolean animateY) {
-        super.setRange(fromX, toX, animateX, animateY);
+    public void setChart(Chart newChart) {
+        xLabels = null; // Invalidating X labels
 
-        initRangesIfReady();
+        super.setChart(newChart);
+    }
+
+    @Override
+    protected void doOnReady() {
+        prepareXLabels(); // Should be called before super
+
+        super.doOnReady();
+    }
+
+    @Override
+    protected void onRangeSet(
+            float fromX, float toX, float fromY, float toY, boolean animateX, boolean animateY) {
+
+        // Including zero value
+        fromY = fromY > 0f ? 0f : fromY;
+        toY = toY < 0f ? 0f : toY;
+
+        // Ensure we have minimum possible Y values
+        if (toY - fromY + 1 < Y_GUIDES_COUNT) {
+            toY = fromY + Y_GUIDES_COUNT - 1;
+        }
+
+        // Preparing new Y guides
+        for (int i = 0; i < Y_GUIDES_COUNT; i++) {
+            yGuides.orig[i] = fromY + (toY - fromY) * i / (Y_GUIDES_COUNT - 1f);
+        }
+
+        super.onRangeSet(fromX, toX, fromY, toY, animateX, animateY);
+    }
+
+    private void prepareXLabels() {
+        if (xLabels != null) {
+            return; // Already prepared
+        }
+
+        int size = chart.x.length;
+        xLabels = new ArrayList<>(size);
+
+        // Preparing titles
+        float maxLabelWidth = 0f;
+        final float[] widths = new float[size];
+        final String[] titles = new String[size];
+
+        for (int i = 0; i < size; i++) {
+            titles[i] = labelCreator.call(chart.x[i]);
+            widths[i] = measureXLabel(titles[i]);
+            maxLabelWidth = Math.max(maxLabelWidth, widths[i]);
+        }
+
+        // Computing max number of intervals
+        xMaxIntervals = computeMaxIntervals(
+                getChartPosition().width(), maxLabelWidth, xLabelPadding);
+
+        final int[] levels = computeLabelsLevels(size, xMaxIntervals);
+
+        for (int i = 0; i < size; i++) {
+            // Inverting levels position according to direction
+            int levelPos = direction > 0 ? i : size - 1 - i;
+            xLabels.add(new XLabel(titles[i], levels[levelPos], widths[i]));
+        }
+    }
+
+    private float measureXLabel(String title) {
+        xLabelPaint.getTextBounds(title, 0, title.length(), textBounds);
+        return textBounds.width();
     }
 
 
-    public void snap(boolean animate) {
-        // Calculating new from / to range which will nicely fit entire screen width
+    /**
+     * Computing maximum number of intervals that can possibly fit into single screen.
+     */
+    private static float computeMaxIntervals(float totalWidth, float labelWidth, float padding) {
+        float maxIntervals = (totalWidth - labelWidth) / (labelWidth + padding);
+        return Math.max(maxIntervals, 2f); // Assuming that screen must fit at least 3 labels
+    }
+
+    /**
+     * Returns array of levels for each label.
+     */
+    private static int[] computeLabelsLevels(int size, float maxIntervals) {
+        final int[] levels = new int[size];
+
+        fillInitialLabelsLevel(levels, maxIntervals);
+
+        if (levels[0] != levels[size - 1]) {
+            throw new AssertionError("Initial labels should include edge points");
+        }
+        if (levels[0] == 0) {
+            throw new AssertionError("Initial labels level is invalid");
+        }
+
+        return levels;
+    }
+
+    private static void fillInitialLabelsLevel(int[] levels, float maxIntervals) {
+        final int size = levels.length;
+
+        // Computing minimum number of steps that each interval should hold
+        final int minStepsPerInterval = (int) Math.ceil((size - 1) / maxIntervals);
+
+        // Computing number of whole intervals fitting into single screen
+        final int intervals = (size - 1) / minStepsPerInterval;
+
+        // Computing actual number of steps per interval (can be bigger than min steps above)
+        final int stepsPerInterval = (size - 1) / intervals;
+
+        // Computing number of intervals that should hold extra step to span entire size
+        final int intervalsWithExtra = (size - 1) % intervals;
+
+        // Dividing first level evenly into intervals and then fill each interval
+        // by recursively dividing it into 2 sub-intervals
+        int prevPos = -1;
+
+        for (int i = 0; i <= intervals; i++) {
+            int pos = i * stepsPerInterval;
+
+            // Adding extra step to last intervals to have a correct total distribution
+            pos += Math.max(intervalsWithExtra - intervals + i, 0);
+            levels[pos] = stepsPerInterval;
+
+            // Setting up values in-between
+            if (prevPos != -1) {
+                fillLevelsInHalfs(levels, stepsPerInterval, prevPos, pos);
+            }
+            prevPos = pos;
+        }
+    }
+
+    private static void fillLevelsInHalfs(int[] levels, int prevLevel, int from, int to) {
+        final int level = prevLevel / 2;
+
+        if (level <= 1) {
+            for (int i = from + 1; i < to; i++) {
+                levels[i] = 1;
+            }
+        } else {
+            final int mid = (to + from) / 2;
+            levels[mid] = level; // Can't be less than 1
+            fillLevelsInHalfs(levels, level, from, mid);
+            fillLevelsInHalfs(levels, level, mid, to);
+        }
+    }
+
+    private static float computeCurrentLevel(float size, float maxIntervals) {
+        return (size - 1f) / maxIntervals;
+    }
+
+
+    /**
+     * Sets an integer range that is closest to current X range.
+     */
+    public void snapToClosest(boolean animate) {
         final Range range = xRangeEnd;
 
-        if (range.size() < 2 * xLabelsMinCount) {
+        if (xLabelsLevel <= 1f) {
             return; // No snapping needed
         }
 
-        final int targetLevel = calcLabelsLevel(range.size());
+        final float maxSteps = chartRange.size() / xMaxIntervals;
 
-        // Closest "nice" size
-        final int newSize = ((int) range.size() / targetLevel) * targetLevel + 1;
-
-        // Closest "nice" from / to range
-        int newTo;
-        int newFrom;
-
-        final int chartSize = (int) chartRange.size();
-
-        if (direction > 0) {
-            newFrom = Math.round(range.from / targetLevel) * targetLevel;
-            newTo = newFrom + newSize - 1;
-
-            // Switching to other closest position if we went outside of allowed range
-            if (newTo >= chartSize) {
-                newTo -= targetLevel;
-                newFrom -= targetLevel;
+        final int from = Math.round(range.from);
+        int closestFrom = from;
+        for (int i = 0; i < maxSteps; i++) {
+            if (xLabels.get(from - i).level >= xLabelsLevel) {
+                closestFrom = from - i;
+                break;
+            } else if (xLabels.get(from + i).level >= xLabelsLevel) {
+                closestFrom = from + i;
+                break;
             }
-        } else {
-            float to = chartSize - 1 - range.to;
-            newTo = chartSize - 1 - Math.round(to / targetLevel) * targetLevel;
-            newFrom = newTo - newSize + 1;
+        }
 
-            // Switching to other closest position if we went outside of allowed range
-            if (newFrom < 0) {
-                newTo += targetLevel;
-                newFrom += targetLevel;
+        final int to = Math.round(range.to);
+        int closestTo = to;
+        for (int i = 0; i < maxSteps; i++) {
+            if (xLabels.get(to + i).level >= xLabelsLevel) {
+                closestTo = to + i;
+                break;
+            } else if (xLabels.get(to - i).level >= xLabelsLevel) {
+                closestTo = to - i;
+                break;
             }
         }
 
         // Applying new "nice" range
-        if (range.from != newFrom || range.to != newTo) {
-            setRange(newFrom, newTo, animate, animate);
-        }
-    }
-
-
-    @Override
-    protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
-        super.onSizeChanged(width, height, oldWidth, oldHeight);
-
-        // Calculating minimum number of labels which should fit view's width.
-        // E.g. if width = 320 and max width = 50 then min labels count = 3.
-        xLabelsMinCount = ((int) (width / xLabelMaxWidth) + 1) / 2;
-        // Min labels number cannot be less than 2
-        xLabelsMinCount = Math.max(2, xLabelsMinCount);
-
-        initRangesIfReady();
-    }
-
-
-    private void initRangesIfReady() {
-        if (!isReady()) {
-            return;
-        }
-
-        // Preparing new Y guides
-        final Range yRange = yRangeEnd;
-        for (int i = 0; i < Y_GUIDES_COUNT; i++) {
-            yGuides.orig[i] = yRange.from + (yRange.size() - 1f) * i / (Y_GUIDES_COUNT - 1f);
-        }
-
-        // Calculating current X labels level
-        xLabelsLevel = calcLabelsLevel(xRange.size());
-
-        toggleLabelsVisibility(animateLabels);
-        animateLabels = true;
-
-        if (rangeListener != null) {
-            rangeListener.onRangeChanged(xRange);
-        }
-    }
-
-
-    private void toggleLabelsVisibility(boolean animate) {
-        final int fromX = (int) Math.floor(xRange.from);
-        final int toX = (int) Math.floor(xRange.to);
-
-        for (int i = fromX; i <= toX; i++) {
-            XLabel label = xLabels.get(i);
-
-            final boolean show = label.maxLevel >= xLabelsLevel;
-            final float toState = show ? 1f : 0f;
-
-            if (label.targetState != toState) {
-                label.targetState = toState;
-
-                if (animate) {
-                    label.animation = new AnimationState(show ? label.state : 1f - label.state);
-                    animator.start();
-                } else {
-                    label.animation = null;
-                    label.state = toState;
-                }
-            }
+        if (range.from != closestFrom || range.to != closestTo) {
+            setRange(closestFrom, closestTo, animate, animate);
         }
     }
 
@@ -230,40 +272,82 @@ public class ChartView extends BaseChartView {
     protected boolean onAnimationStep() {
         boolean result = super.onAnimationStep();
 
-        // X range may change, so need to re-calc current labels level and animate them
-        xLabelsLevel = calcLabelsLevel(xRange.size());
-        toggleLabelsVisibility(true);
-
-        // Calculating X labels animation states
+        // Checking X labels animations states
         for (XLabel label : xLabels) {
-            if (label.animation != null) {
-                float animState = label.animation.getState();
-                label.state = label.targetState == 1f ? animState : 1f - animState;
-
-                if (animState == 1f) {
-                    label.animation = null;
-                } else {
-                    result = true;
-                }
+            if (label.animation != null && label.state == label.targetState) {
+                label.animation = null;
             }
-        }
-
-        if (rangeListener != null) {
-            rangeListener.onRangeChanged(xRange);
+            result |= label.animation != null;
         }
 
         return result;
+    }
+
+    @Override
+    protected void onUpdateChartState() {
+        super.onUpdateChartState();
+
+        // Calculating current X labels level
+        xLabelsLevel = computeCurrentLevel(xRange.size(), xMaxIntervals);
+        setLabelsVisibility();
+
+        if (xRangeListener != null) {
+            xRangeListener.onRangeChanged(xRange.from, xRange.to);
+        }
+    }
+
+
+    private void setLabelsVisibility() {
+        final float fromX = xRangeExt.from;
+        final float toX = xRangeExt.to;
+
+        for (int i = 0, size = xLabels.size(); i < size; i++) {
+            final XLabel label = xLabels.get(i);
+
+            // Resetting out-of-range labels
+            if (i < fromX || i > toX) {
+                label.state = 0f;
+                label.targetState = Float.NaN;
+                label.animation = null;
+                continue;
+            }
+
+            final boolean show = label.level >= xLabelsLevel;
+            final float toState = show ? 1f : 0f;
+
+            if (Float.isNaN(label.targetState)) {
+                // Setting initial label state
+                label.state = toState;
+                label.targetState = toState;
+                label.animation = null;
+            } else {
+                // Setting current state value
+                if (label.animation != null) {
+                    float animState = label.animation.getState();
+                    label.state = label.targetState == 1f ? animState : 1f - animState;
+                }
+
+                // Triggering animation if target state is changed
+                if (label.targetState != toState) {
+                    // Animating to target state
+                    label.targetState = toState;
+                    label.animation = new AnimationState(show ? label.state : 1f - label.state);
+                }
+            }
+        }
     }
 
 
     @Override
     protected void onDraw(Canvas canvas) {
         if (!isReady()) {
+            super.onDraw(canvas);
             return;
         }
 
-        final float left = getPaddingLeft();
-        final float right = getWidth() - getPaddingRight();
+        final Rect chartPosition = getChartPosition();
+        final float left = chartPosition.left;
+        final float right = chartPosition.right;
 
         // Drawing Y guides
         yGuides.transform(matrix);
@@ -275,76 +359,68 @@ public class ChartView extends BaseChartView {
         super.onDraw(canvas);
 
         // Drawing X labels
-        final int fromX = (int) Math.floor(xRange.from);
-        final int toX = (int) Math.floor(xRange.to);
+        final float fromX = xRange.from;
+        final float toX = xRange.to;
 
-        final float labelPosY = getHeight() - getPaddingBottom();
+        final int fromExtX = (int) Math.ceil(xRangeExt.from);
+        final int toExtX = (int) Math.floor(xRangeExt.to);
+
+        final float extraLeft = left - 0f;
+        final float extraRight = getWidth() - right;
+
         final float dotPosY = yGuides.transformed[0];
+        final float labelPosY = getHeight() - getPaddingBottom();
 
-        for (int i = fromX; i <= toX; i++) {
+        for (int i = fromExtX; i <= toExtX; i++) {
             XLabel label = xLabels.get(i);
 
             if (label.state > 0f) {
-                int alpha = (int) (255 * label.state);
-                xLabelPaint.setAlpha(alpha);
-                xLabelDotPaint.setAlpha(alpha);
+                float alpha = label.state;
 
-                float dotPosX = ChartMath.mapX(matrix, i);
-                float width = getLabelWidth(label);
+                final float dotPosX = ChartMath.mapX(matrix, i);
 
-                // Shifting label X pos according to their position on screen to fit in chart width
-                float labelShift = (dotPosX - left) / (right - left);
-                float labelPosX = dotPosX - width * labelShift;
+                // Drawing a dot if it is inside internal range
+                if (fromX <= i && i <= toX) {
+                    xLabelDotPaint.setAlpha(Math.round(255 * alpha));
+                    canvas.drawPoint(dotPosX, dotPosY, xLabelDotPaint);
+                }
 
+                // Shifting label's X pos according to its position on screen to fit internal width
+                final float labelShift;
+                if (i < fromX && extraLeft > 0f) {
+                    // Animating label appearance on the left
+                    labelShift = 1f - dotPosX / extraLeft;
+                    alpha *= 1f - labelShift;
+                } else if (i > toX && extraRight > 0f) {
+                    // Animating label appearance on the right
+                    labelShift = 1f - (dotPosX - right) / extraRight;
+                    alpha *= labelShift;
+                } else {
+                    labelShift = (dotPosX - left) / (right - left);
+                }
+
+                final float labelPosX = dotPosX - label.width * labelShift;
+
+                xLabelPaint.setAlpha(Math.round(255 * alpha));
                 canvas.drawText(label.title, labelPosX, labelPosY, xLabelPaint);
-                canvas.drawPoint(dotPosX, dotPosY, xLabelDotPaint);
             }
         }
     }
 
 
-    private int calcLabelsLevel(float size) {
-        // Number of labels we can shown at the same time without hiding them is
-        // [xLabelsMinCount, 2 * xLabelsMinCount - 1).
-        // If there are more x values needs to be shown then we have to hide some of the labels.
-        // Overall we will only show every 2^x (== xLabelsLevel) labels, so we need to find out
-        // what level should be used for given number of x values.
-
-        if (size < 2 * xLabelsMinCount) {
-            // Maximum number of labels we can show without hiding them is (2 * xLabelsMinCount - 1)
-            return 1;
-        } else {
-            // Current level can be calculated as a maximum power of 2 that is less or equal to
-            // the number of items in maximum possible interval.
-            double intervalSize = (size - 2.0) / (xLabelsMinCount - 1.0);
-            double log2 = Math.log(intervalSize) / Math.log(2.0);
-            return (int) Math.pow(2.0, (int) log2);
-        }
-    }
-
-    private float getLabelWidth(XLabel label) {
-        // Measuring requested label (if not measured yet)
-        if (Float.isNaN(label.width)) {
-            xLabelPaint.getTextBounds(label.title, 0, label.title.length(), textBounds);
-            label.width = textBounds.width();
-        }
-        return label.width;
-    }
-
-
     private static class XLabel {
         final String title;
-        final int maxLevel;
-
-        float width = Float.NaN;
+        final int level;
+        final float width;
 
         float state;
-        float targetState;
+        float targetState = Float.NaN;
         AnimationState animation;
 
-        XLabel(String title, int maxLevel) {
+        XLabel(String title, int level, float width) {
             this.title = title;
-            this.maxLevel = maxLevel;
+            this.level = level;
+            this.width = width;
         }
     }
 
@@ -374,7 +450,7 @@ public class ChartView extends BaseChartView {
     }
 
     public interface RangeListener {
-        void onRangeChanged(Range range);
+        void onRangeChanged(float from, float to);
     }
 
 }

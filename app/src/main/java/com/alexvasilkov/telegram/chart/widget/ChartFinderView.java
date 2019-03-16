@@ -20,11 +20,12 @@ public class ChartFinderView extends BaseChartView {
 
     private final float handleWidth = dpToPx(6);
     private final float handleTouchOffset = dpToPx(20);
-    private final float handlesMinDistance = dpToPx(60);
+    private final float handlesMinDistance = dpToPx(10);
 
     private final Range handleRange = new Range();
     private final Paint handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private Integer selectedHandle; // -1 for left, 1 for right and 0 for both
+    private boolean firstScrollEvent;
 
     private final GestureDetector gestureDetector;
 
@@ -50,8 +51,6 @@ public class ChartFinderView extends BaseChartView {
         };
         gestureDetector = new GestureDetector(context, listener);
 
-        setIncludeZeroY(false);
-        setMinSizeY(3);
         setStrokeWidth(1f);
         setInsets(0, (int) dpToPx(4f), 0, (int) dpToPx(4f));
     }
@@ -59,7 +58,7 @@ public class ChartFinderView extends BaseChartView {
     public void attachTo(ChartView chartView) {
         this.chartView = chartView;
 
-        chartView.setRangeListener(this::onAttachedRangeChanged);
+        chartView.setXRangeListener(this::onAttachedRangeChanged);
     }
 
     @Override
@@ -102,22 +101,28 @@ public class ChartFinderView extends BaseChartView {
                 selectedHandle = 0;
             }
 
-            return selectedHandle != null; // Ignoring first scroll event (can be buggy)
+            firstScrollEvent = selectedHandle != null;
         }
 
-        return true;
+        return selectedHandle != null;
     }
 
     private void onUpOrCancelEvent() {
         if (selectedHandle != null) {
             selectedHandle = null;
-            chartView.snap(true);
+            chartView.snapToClosest(true);
         }
     }
 
     private boolean onScrollEvent(float distanceX) {
         if (selectedHandle == null) {
             return false;
+        }
+
+        // Ignoring first scroll event (can be buggy)
+        if (firstScrollEvent) {
+            firstScrollEvent = false;
+            return true;
         }
 
         float scaleX = ChartMath.getScaleX(matrix);
@@ -164,21 +169,22 @@ public class ChartFinderView extends BaseChartView {
     }
 
 
-    private void onAttachedRangeChanged(Range range) {
+    private void onAttachedRangeChanged(float fromX, float toX) {
+        // Only updating local state if we are not changing it ourselves
         if (selectedHandle == null) {
-            handleRange.set(range);
+            handleRange.set(fromX, toX);
             invalidate();
         }
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
+        // Drawing chart
+        super.onDraw(canvas);
+
         if (!isReady()) {
             return;
         }
-
-        // Drawing chart
-        super.onDraw(canvas);
 
         // Drawing handle
         float leftPos = ChartMath.mapX(matrix, handleRange.from);
