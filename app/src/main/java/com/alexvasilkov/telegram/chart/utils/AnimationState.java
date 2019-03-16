@@ -1,22 +1,22 @@
-package com.alexvasilkov.telegram.chart.widget;
+package com.alexvasilkov.telegram.chart.utils;
 
 import android.os.SystemClock;
 
-class AnimationState {
+public class AnimationState {
 
     private static final float DURATION = 300f;
 
     private final long startedAt;
 
-    AnimationState() {
+    public AnimationState() {
         this(0f);
     }
 
-    AnimationState(float state) {
+    public AnimationState(float state) {
         startedAt = SystemClock.elapsedRealtime() - (long) (DURATION * state);
     }
 
-    float getState() {
+    public float getState() {
         float state = (SystemClock.elapsedRealtime() - startedAt) / DURATION;
         return state < 0f ? 0f : (state > 1f ? 1f : state);
     }

@@ -11,29 +11,32 @@ import android.util.TypedValue;
 import android.view.View;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.utils.AnimationState;
+import com.alexvasilkov.telegram.chart.utils.ChartAnimator;
+import com.alexvasilkov.telegram.chart.utils.Range;
 
 import androidx.annotation.Nullable;
 
 class BaseChartView extends View {
 
-    protected final Animator animator;
+    protected final ChartAnimator animator;
     private final Path path = new Path();
     private final Paint pathPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     protected final Matrix matrix = new Matrix();
 
-    protected final FloatRange xRange = new FloatRange();
-    private final FloatRange xRangeExt = new FloatRange();
-    private final FloatRange xRangeStart = new FloatRange();
-    protected final FloatRange xRangeEnd = new FloatRange();
+    protected final Range xRange = new Range();
+    private final Range xRangeExt = new Range();
+    private final Range xRangeStart = new Range();
+    protected final Range xRangeEnd = new Range();
     private AnimationState xRangeState;
 
-    protected final FloatRange yRange = new FloatRange();
-    private final FloatRange yRangeStart = new FloatRange();
-    protected final FloatRange yRangeEnd = new FloatRange();
+    protected final Range yRange = new Range();
+    private final Range yRangeStart = new Range();
+    protected final Range yRangeEnd = new Range();
     private AnimationState yRangeState;
 
     protected Chart chart;
-    protected final FloatRange chartRange = new FloatRange();
+    protected final Range chartRange = new Range();
 
     private boolean includeZeroY;
     private int minSizeY;
@@ -44,7 +47,7 @@ class BaseChartView extends View {
     protected BaseChartView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
 
-        animator = new Animator(this, this::onAnimationStep);
+        animator = new ChartAnimator(this, this::onAnimationStep);
 
         pathPaint.setStyle(Paint.Style.STROKE);
         pathPaint.setStrokeWidth(dpToPx(2f));

@@ -1,8 +1,8 @@
-package com.alexvasilkov.telegram.chart.widget;
+package com.alexvasilkov.telegram.chart.utils;
 
 import android.graphics.Matrix;
 
-class ChartMath {
+public class ChartMath {
 
     // This is a pre-computed zero-bits lookup table (maps a bit value mod 37 to its position)
     private static final int[] trailingZeroLookup = {
@@ -18,26 +18,26 @@ class ChartMath {
      *
      * See https://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightModLookup
      */
-    static int countTrailingZeroBits(int x) {
+    public static int countTrailingZeroBits(int x) {
         return trailingZeroLookup[(-x & x) % 37];
     }
 
 
-    static float mapX(Matrix matrix, float x) {
+    public static float mapX(Matrix matrix, float x) {
         tmpFloatPoint[0] = x;
         tmpFloatPoint[1] = 0f;
         matrix.mapPoints(tmpFloatPoint);
         return tmpFloatPoint[0];
     }
 
-    static float mapY(Matrix matrix, float y) {
+    public static float mapY(Matrix matrix, float y) {
         tmpFloatPoint[0] = 0f;
         tmpFloatPoint[1] = y;
         matrix.mapPoints(tmpFloatPoint);
         return tmpFloatPoint[1];
     }
 
-    static float getScaleX(Matrix matrix) {
+    public static float getScaleX(Matrix matrix) {
         return mapX(matrix, 1f) - mapX(matrix, 0f);
     }
 

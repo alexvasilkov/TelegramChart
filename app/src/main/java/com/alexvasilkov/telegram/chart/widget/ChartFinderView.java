@@ -11,6 +11,8 @@ import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.MotionEvent;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.utils.ChartMath;
+import com.alexvasilkov.telegram.chart.utils.Range;
 
 import androidx.annotation.Nullable;
 
@@ -20,7 +22,7 @@ public class ChartFinderView extends BaseChartView {
     private final float handleTouchOffset = dpToPx(20);
     private final float handlesMinDistance = dpToPx(60);
 
-    private final FloatRange handleRange = new FloatRange();
+    private final Range handleRange = new Range();
     private final Paint handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private Integer selectedHandle; // -1 for left, 1 for right and 0 for both
 
@@ -162,7 +164,7 @@ public class ChartFinderView extends BaseChartView {
     }
 
 
-    private void onAttachedRangeChanged(FloatRange range) {
+    private void onAttachedRangeChanged(Range range) {
         if (selectedHandle == null) {
             handleRange.set(range);
             invalidate();

@@ -1,8 +1,8 @@
-package com.alexvasilkov.telegram.chart.widget;
+package com.alexvasilkov.telegram.chart.utils;
 
 import android.view.View;
 
-class Animator {
+public class ChartAnimator {
 
     private static final long FRAME_TIME = 10L;
 
@@ -11,12 +11,12 @@ class Animator {
 
     private final Runnable updateAction = this::update;
 
-    Animator(View view, StepListener listener) {
+    public ChartAnimator(View view, StepListener listener) {
         this.view = view;
         this.listener = listener;
     }
 
-    void start() {
+    public void start() {
         scheduleNextStep();
     }
 
@@ -35,7 +35,7 @@ class Animator {
     }
 
 
-    interface StepListener {
+    public interface StepListener {
         boolean onStep();
     }
 
