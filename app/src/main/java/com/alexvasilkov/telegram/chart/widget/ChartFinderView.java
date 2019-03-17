@@ -276,8 +276,8 @@ public class ChartFinderView extends BaseChartView {
                 rangeFrom = rangeTo - width / currentScale;
             } else {
                 // No movement, means we reached either of the sides
-                rangeFrom = xRange.from;
-                rangeTo = xRange.to;
+                rangeFrom = handleFromX <= 0f ? 0 : xRange.from;
+                rangeTo = handleToX >= width ? totalIntervals : xRange.to;
             }
 
             // Calculating handles values from their on-screen positions
