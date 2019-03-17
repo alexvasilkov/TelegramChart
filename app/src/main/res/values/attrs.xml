@@ -13,11 +13,16 @@
         <attr name="chart_guidesColor" format="reference|color" />
         <attr name="chart_guidesWidth" format="reference|dimension" />
         <attr name="chart_guidesNumber" format="reference|integer" />
+        <attr name="chart_direction" format="enum">
+            <enum name="fromLeft" value="1" />
+            <enum name="fromRight" value="-1" />
+        </attr>
     </declare-styleable>
 
     <declare-styleable name="ChartFinderView">
         <attr name="chart_foregroundColor" format="reference|color" />
         <attr name="chart_frameColor" format="reference|color" />
+        <attr name="chart_useDynamicRange" format="reference|boolean" />
     </declare-styleable>
 
 </resources>

@@ -22,6 +22,7 @@
                 android:layout_height="320dp"
                 android:layout_marginTop="8dp"
                 android:padding="16dp"
+                app:chart_direction="fromRight"
                 app:chart_guidesColor="@color/chart_guides"
                 app:chart_guidesNumber="6"
                 app:chart_guidesWidth="1dp"
@@ -41,7 +42,8 @@
                 android:paddingBottom="4dp"
                 app:chart_foregroundColor="@color/finder_foreground"
                 app:chart_frameColor="@color/finder_frame"
-                app:chart_lineWidth="1dp" />
+                app:chart_lineWidth="1dp"
+                app:chart_useDynamicRange="true" />
 
             <LinearLayout
                 android:id="@+id/chart_lines"

@@ -28,23 +28,24 @@ public class ChartView extends BaseChartView {
     private final float xLabelPadding = dpToPx(10f);
     private final float yLabelPaddingBottom = dpToPx(5f);
 
+    private final int direction;
+
     private YGuides yGuides;
     private final List<YGuides> yGuidesOld = new ArrayList<>();
     private final Paint yGuidesPaint = new Paint(PAINT_FLAGS);
 
     private List<XLabel> xLabels;
     private float xMaxIntervals;
-
+    int xIntervalsNumber;
     private float xLabelsLevel;
+
     private final Paint xLabelPaint = new Paint(PAINT_FLAGS);
     private final Paint xLabelDotPaint = new Paint(PAINT_FLAGS);
     private final Paint yLabelPaint = new Paint(PAINT_FLAGS);
     private final Paint yLabelStrokePaint = new Paint(PAINT_FLAGS);
 
-    private int direction = 1;
     private Function<Long, String> xLabelCreator;
     private Function<Integer, String> yLabelCreator;
-    private RangeListener xRangeListener;
 
 
     public ChartView(Context context, AttributeSet attrs) {
@@ -60,6 +61,7 @@ public class ChartView extends BaseChartView {
         float guidesWidth = arr.getDimension(R.styleable.ChartView_chart_guidesWidth, dpToPx(1f));
         int guidesColor = arr.getColor(R.styleable.ChartView_chart_guidesColor, Color.LTGRAY);
         yGuidesCount = arr.getInt(R.styleable.ChartView_chart_guidesNumber, 6);
+        direction = arr.getInt(R.styleable.ChartView_chart_direction, 1);
         arr.recycle();
 
         yGuidesPaint.setStyle(Paint.Style.STROKE);
@@ -86,20 +88,12 @@ public class ChartView extends BaseChartView {
         setInsets(0, topInset, 0, bottomInset);
     }
 
-    public void setDirection(int direction) {
-        this.direction = direction;
-    }
-
     public void setXLabelCreator(Function<Long, String> creator) {
         xLabelCreator = creator;
     }
 
     public void setYLabelCreator(Function<Integer, String> creator) {
         yLabelCreator = creator;
-    }
-
-    public void setXRangeListener(RangeListener listener) {
-        xRangeListener = listener;
     }
 
     @Override
@@ -192,8 +186,9 @@ public class ChartView extends BaseChartView {
         // Computing max number of intervals
         xMaxIntervals = computeMaxIntervals(
                 getChartPosition().width(), maxLabelWidth, xLabelPadding);
+        xIntervalsNumber = computeIntervals(size, xMaxIntervals);
 
-        final int[] levels = computeLabelsLevels(size, xMaxIntervals);
+        final int[] levels = computeLabelsLevels(size, xIntervalsNumber);
 
         for (int i = 0; i < size; i++) {
             // Inverting levels position according to direction
@@ -207,7 +202,6 @@ public class ChartView extends BaseChartView {
         return textBounds.width();
     }
 
-
     /**
      * Computing maximum number of intervals that can possibly fit into single screen.
      */
@@ -216,13 +210,21 @@ public class ChartView extends BaseChartView {
         return Math.max(maxIntervals, 2f); // Assuming that screen must fit at least 3 labels
     }
 
+    private static int computeIntervals(int xSize, float maxIntervals) {
+        // Computing minimum number of steps that each interval should hold
+        final int minStepsPerInterval = (int) Math.ceil((xSize - 1) / maxIntervals);
+
+        // Computing number of whole intervals fitting into single screen
+        return (xSize - 1) / minStepsPerInterval;
+    }
+
     /**
      * Returns array of levels for each label.
      */
-    private static int[] computeLabelsLevels(int size, float maxIntervals) {
+    private static int[] computeLabelsLevels(int size, int intervals) {
         final int[] levels = new int[size];
 
-        fillInitialLabelsLevel(levels, maxIntervals);
+        fillInitialLabelsLevel(levels, intervals);
 
         if (levels[0] != levels[size - 1]) {
             throw new AssertionError("Initial labels should include edge points");
@@ -234,14 +236,8 @@ public class ChartView extends BaseChartView {
         return levels;
     }
 
-    private static void fillInitialLabelsLevel(int[] levels, float maxIntervals) {
+    private static void fillInitialLabelsLevel(int[] levels, int intervals) {
         final int size = levels.length;
-
-        // Computing minimum number of steps that each interval should hold
-        final int minStepsPerInterval = (int) Math.ceil((size - 1) / maxIntervals);
-
-        // Computing number of whole intervals fitting into single screen
-        final int intervals = (size - 1) / minStepsPerInterval;
 
         // Computing actual number of steps per interval (can be bigger than min steps above)
         final int stepsPerInterval = (size - 1) / intervals;
@@ -324,10 +320,6 @@ public class ChartView extends BaseChartView {
             guides.transform(matrix);
         }
         setYGuidesVisibility();
-
-        if (xRangeListener != null) {
-            xRangeListener.onRangeChanged(xRange.from, xRange.to);
-        }
     }
 
 
@@ -511,10 +503,6 @@ public class ChartView extends BaseChartView {
 
     public interface Function<I, O> {
         O call(I input);
-    }
-
-    public interface RangeListener {
-        void onRangeChanged(float from, float to);
     }
 
 }

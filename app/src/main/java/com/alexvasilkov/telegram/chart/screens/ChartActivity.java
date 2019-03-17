@@ -46,7 +46,6 @@ public class ChartActivity extends BaseActivity {
         final ChartFinderView chartFinderView = findViewById(R.id.chart_finder_view);
         final ViewGroup linesGroup = findViewById(R.id.chart_lines);
 
-        chartView.setDirection(-1);
         chartView.setXLabelCreator(this::formatDate);
         chartView.setYLabelCreator(String::valueOf);
 

@@ -17,15 +17,21 @@ import com.alexvasilkov.telegram.chart.utils.Range;
 
 public class ChartFinderView extends BaseChartView {
 
+    private static final int HANDLE_LEFT = -1;
+    private static final int HANDLE_RIGHT = 1;
+    private static final int HANDLE_BOTH = 0;
+
     private final float frameXWidth = dpToPx(6);
     private final float frameYWidth = dpToPx(1);
     private final float handleTouchOffset = dpToPx(20);
-    private final float handlesMinDistance = dpToPx(60);
+    private final float handlesMinDistance = dpToPx(80);
+
+    private final boolean useDynamicRange;
 
     private final Range handleRange = new Range();
     private final Paint foregroundPaint = new Paint(PAINT_FLAGS);
     private final Paint framePaint = new Paint(PAINT_FLAGS);
-    private Integer selectedHandle; // -1 for left, 1 for right and 0 for both
+    private Integer selectedHandle; // One of HANDLE_* values
     private boolean firstScrollEvent;
 
     private final GestureDetector gestureDetector;
@@ -40,6 +46,7 @@ public class ChartFinderView extends BaseChartView {
         int foregroundColor =
                 arr.getColor(R.styleable.ChartFinderView_chart_foregroundColor, 0x44000000);
         int frameColor = arr.getColor(R.styleable.ChartFinderView_chart_frameColor, 0x88000000);
+        useDynamicRange = arr.getBoolean(R.styleable.ChartFinderView_chart_useDynamicRange, true);
         arr.recycle();
 
         foregroundPaint.setStyle(Paint.Style.FILL);
@@ -66,8 +73,6 @@ public class ChartFinderView extends BaseChartView {
 
     public void attachTo(ChartView chartView) {
         this.chartView = chartView;
-
-        chartView.setXRangeListener(this::onAttachedRangeChanged);
     }
 
     @Override
@@ -103,16 +108,16 @@ public class ChartFinderView extends BaseChartView {
 
             if (leftDist < rightDist) {
                 if (leftDist <= handleTouchOffset) {
-                    selectedHandle = -1;
+                    selectedHandle = HANDLE_LEFT;
                 }
             } else {
                 if (rightDist <= handleTouchOffset) {
-                    selectedHandle = 1;
+                    selectedHandle = HANDLE_RIGHT;
                 }
             }
 
             if (selectedHandle == null && leftPos < initialX && initialX < rightPos) {
-                selectedHandle = 0;
+                selectedHandle = HANDLE_BOTH;
             }
 
             if (selectedHandle != null) {
@@ -139,43 +144,62 @@ public class ChartFinderView extends BaseChartView {
             return true;
         }
 
-        float scaleX = ChartMath.getScaleX(matrix);
-        float dist = distanceX / scaleX;
-        float minDist = handlesMinDistance / scaleX;
+        final float width = getChartPosition().width();
 
-        if (selectedHandle == -1) { // Left handle
-            float newFrom = handleRange.from - dist;
+        // Calculating current handles positions
+        final float currentScale = width / (xRange.size() - 1f);
 
-            if (newFrom > handleRange.to - minDist) {
-                newFrom = handleRange.to - minDist;
+        final float handleFromXOrig = (handleRange.from - xRange.from) * currentScale;
+        final float handleToXOrig = width - (xRange.to - handleRange.to) * currentScale;
+
+        float handleFromX = handleFromXOrig;
+        float handleToX = handleToXOrig;
+
+        // Applying scrolled distance to handles
+        if (selectedHandle == HANDLE_LEFT) {
+            // Moving left edge
+            handleFromX -= distanceX;
+
+            if (handleFromX < 0f) {
+                handleFromX = 0f;
+            } else if (handleToX - handleFromX < handlesMinDistance) {
+                handleFromX = handleToX - handlesMinDistance;
+            }
+        } else if (selectedHandle == HANDLE_RIGHT) {
+            // Moving right edge
+            handleToX -= distanceX;
+
+            if (handleToX > width) {
+                handleToX = width;
+            } else if (handleToX - handleFromX < handlesMinDistance) {
+                handleToX = handleFromX + handlesMinDistance;
             }
 
-            handleRange.from = chartRange.fit(newFrom);
-        } else if (selectedHandle == 1) { // Right handle
-            float newTo = handleRange.to - dist;
+        } else {
+            // Moving both edges
+            handleFromX -= distanceX;
+            handleToX -= distanceX;
 
-            if (newTo < handleRange.from + minDist) {
-                newTo = handleRange.from + minDist;
+            if (handleFromX < 0f) {
+                handleToX += 0f - handleFromX;
+                handleFromX = 0f;
+            } else if (handleToX > width) {
+                handleFromX -= handleToX - width;
+                handleToX = width;
             }
-
-            handleRange.to = chartRange.fit(newTo);
-        } else { // Scrolling both
-            float newFrom = handleRange.from - dist;
-            float newTo = handleRange.to - dist;
-
-            float diff = 0f;
-            if (newFrom < chartRange.from) {
-                diff = chartRange.from - newFrom;
-            } else if (newTo > chartRange.to) {
-                diff = chartRange.to - newTo;
-            }
-
-            newFrom += diff;
-            newTo += diff;
-
-            handleRange.set(newFrom, newTo);
         }
 
+        if (useDynamicRange) {
+            setHandlesWithDynamicRange(
+                    handleFromX, handleToX,
+                    handleFromXOrig, handleToXOrig,
+                    width, currentScale
+            );
+        } else {
+            setHandlesWithStaticRange(handleFromX, handleToX, currentScale);
+        }
+
+        // Setting new range to attached chart view
         chartView.setRange(handleRange.from, handleRange.to, false, true);
 
         invalidate();
@@ -183,41 +207,120 @@ public class ChartFinderView extends BaseChartView {
     }
 
 
-    private void onAttachedRangeChanged(float fromX, float toX) {
-        // Only updating local state if we are not changing it ourselves
-        if (selectedHandle == null) {
-            handleRange.set(fromX, toX);
-            invalidate();
+    /**
+     * Sets handles according to their on-screen position without changing X range.
+     * It may not be possible to zoom to revel all chart X values since we have to preserve
+     * minimum distance between the handles.
+     */
+    private void setHandlesWithStaticRange(float handleFromX, float handleToX, float currentScale) {
+        handleRange.from = xRange.from + handleFromX / currentScale;
+        handleRange.to = xRange.from + handleToX / currentScale;
+    }
+
+
+    /**
+     * Calculates and applies new handles range and new X range at the same time so that
+     * it is possible to zoom to maximum possible details while preserving min distance
+     * between the handles.
+     */
+    private void setHandlesWithDynamicRange(
+            float handleFromX, float handleToX,
+            float handleFromXOrig, float handleToXOrig,
+            float width, float currentScale) {
+
+        final float totalIntervals = chartRange.size() - 1f;
+        final float minIntervals = chartView.xIntervalsNumber;
+
+        float rangeFrom;
+        float rangeTo;
+
+        if (selectedHandle == HANDLE_LEFT) {
+            // Left handle is moving. Right handle's position and value should stay unchanged.
+
+            // Calculating state that changes 0 -> 1 when left handle position is
+            // changing from left-most to the maximum possible position to the right
+            float state = handleFromX / (handleToX - handlesMinDistance);
+
+            // Left handle value should change at the same pace from 0 to max possible value
+            handleRange.from = state * (handleRange.to - minIntervals);
+
+            // Calculating new X range knowing that right handle's value and position are unchanged
+            float scale = (handleToX - handleFromX) / (handleRange.to - handleRange.from);
+            rangeFrom = handleRange.from - handleFromX / scale;
+            rangeTo = rangeFrom + width / scale;
+        } else if (selectedHandle == HANDLE_RIGHT) {
+            // Right handle is moving. Left handle's position and value should stay unchanged.
+
+            // Calculating state that changes 0 -> 1 when right handle position is
+            // changing from right-most to the maximum possible position to the left
+            float state = (width - handleToX) / (width - handleFromX - handlesMinDistance);
+
+            // Right handle value should change at the same pace from total to min possible value
+            handleRange.to = state * (handleRange.from + minIntervals)
+                    + (1f - state) * totalIntervals;
+
+            // Calculating new X range knowing that left handle's value and position are unchanged
+            float scale = (handleToX - handleFromX) / (handleRange.to - handleRange.from);
+            rangeFrom = handleRange.to - handleToX / scale;
+            rangeTo = rangeFrom + width / scale;
+        } else {
+            // Moving both handles in same direction
+            if (handleFromXOrig > handleFromX) { // If moving to left
+                // Calculating new 'from' value so that left invisible part is moving proportionally
+                rangeFrom = xRange.from * handleFromX / handleFromXOrig;
+                rangeTo = rangeFrom + width / currentScale;
+            } else if (handleToXOrig < handleToX) { // If moving to right
+                // Calculating new 'to' value so that right invisible part is moving proportionally
+                rangeTo = totalIntervals - (totalIntervals - xRange.to)
+                        * (width - handleToX) / (width - handleToXOrig);
+                rangeFrom = rangeTo - width / currentScale;
+            } else {
+                // No movement, means we reached either of the sides
+                rangeFrom = xRange.from;
+                rangeTo = xRange.to;
+            }
+
+            // Calculating handles values from their on-screen positions
+            handleRange.from = rangeFrom + handleFromX / currentScale;
+            handleRange.to = rangeFrom + handleToX / currentScale;
+        }
+
+        // Updating X range if changed
+        if (xRange.from != rangeFrom || xRange.to != rangeTo) {
+            setRange(rangeFrom, rangeTo, false, true);
         }
     }
 
+
     @Override
     protected void onDraw(Canvas canvas) {
-        // Drawing chart
-        super.onDraw(canvas);
+        super.onDraw(canvas); // Drawing chart
 
         if (!isReady()) {
             return;
         }
 
         // Drawing handle
-        float leftPos = ChartMath.mapX(matrix, handleRange.from);
-        float rightPos = ChartMath.mapX(matrix, handleRange.to);
+        final float leftPos = ChartMath.mapX(matrix, handleRange.from);
+        final float rightPos = ChartMath.mapX(matrix, handleRange.to);
+
+        final float start = Math.max(0f, ChartMath.mapX(matrix, chartRange.from));
+        final float end = Math.min(getWidth(), ChartMath.mapX(matrix, chartRange.to));
 
         // Foreground
         // Left
-        canvas.drawRect(getPaddingLeft(), 0, leftPos, getHeight(), foregroundPaint);
+        canvas.drawRect(start, 0f, leftPos, getHeight(), foregroundPaint);
         // Right
-        canvas.drawRect(rightPos, 0, getWidth() - getPaddingRight(), getHeight(), foregroundPaint);
+        canvas.drawRect(rightPos, 0f, end, getHeight(), foregroundPaint);
 
         // Frame
         // Left
-        canvas.drawRect(leftPos, 0, leftPos + frameXWidth, getHeight(), framePaint);
+        canvas.drawRect(leftPos, 0f, leftPos + frameXWidth, getHeight(), framePaint);
         // Right
-        canvas.drawRect(rightPos - frameXWidth, 0, rightPos, getHeight(), framePaint);
+        canvas.drawRect(rightPos - frameXWidth, 0f, rightPos, getHeight(), framePaint);
         // Top
         canvas.drawRect(
-                leftPos + frameXWidth, 0,
+                leftPos + frameXWidth, 0f,
                 rightPos - frameXWidth, frameYWidth, framePaint);
         // Bottom
         canvas.drawRect(
