@@ -265,11 +265,11 @@ public class ChartFinderView extends BaseChartView {
             rangeTo = rangeFrom + width / scale;
         } else {
             // Moving both handles in same direction
-            if (handleFromXOrig > handleFromX) { // If moving to left
+            if (handleFromXOrig > handleFromX && handleFromX > 0f) { // If moving to left
                 // Calculating new 'from' value so that left invisible part is moving proportionally
                 rangeFrom = xRange.from * handleFromX / handleFromXOrig;
                 rangeTo = rangeFrom + width / currentScale;
-            } else if (handleToXOrig < handleToX) { // If moving to right
+            } else if (handleToXOrig < handleToX && handleToX < width) { // If moving to right
                 // Calculating new 'to' value so that right invisible part is moving proportionally
                 rangeTo = totalIntervals - (totalIntervals - xRange.to)
                         * (width - handleToX) / (width - handleToXOrig);
