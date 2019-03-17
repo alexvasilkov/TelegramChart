@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="primary">#517da2</color>
+    <color name="primary">#517DA2</color>
     <color name="primaryDark">#426382</color>
-    <color name="accent">#7bc4fb</color>
+    <color name="accent">#7BC4FB</color>
 
-    <color name="window_background">#f0f0f0</color>
+    <color name="window_background">#F0F0F0</color>
     <color name="background">#FFFFFF</color>
     <color name="divider">#F1F1F1</color>
 
     <color name="text_primary">#222222</color>
 
     <color name="chart_guides">@color/divider</color>
-    <color name="chart_labels">#96a2aa</color>
+    <color name="chart_labels">#96A2AA</color>
     <color name="chart_labels_dot">#D9D9D9</color>
 
     <color name="finder_foreground">#B3EBF0F2</color>
