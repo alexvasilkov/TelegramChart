@@ -1,8 +1,12 @@
 package com.alexvasilkov.telegram.chart.utils;
 
 import android.os.SystemClock;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.Interpolator;
 
 public class AnimationState {
+
+    private static final Interpolator interpolator = new AccelerateDecelerateInterpolator();
 
     private static final float DURATION = 300f;
 
@@ -15,12 +19,18 @@ public class AnimationState {
             float animState = (SystemClock.elapsedRealtime() - startedAt) / DURATION;
             animState = animState < 0f ? 0f : (animState > 1f ? 1f : animState);
 
+            animState = interpolator.getInterpolation(animState);
+
             state = targetState == 1f ? animState : 1f - animState;
         }
     }
 
     public float getState() {
         return state;
+    }
+
+    public float getTarget() {
+        return targetState;
     }
 
     public void reset() {

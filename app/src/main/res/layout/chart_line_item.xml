@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheckBox
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:layout_marginLeft="-6dp"
+    android:paddingLeft="12dp"
+    android:textColor="?android:textColorPrimary"
+    android:textSize="14sp"
+    tools:buttonTint="?android:colorPrimary"
+    tools:ignore="RtlHardcoded,RtlSymmetry"
+    tools:text="Label" />

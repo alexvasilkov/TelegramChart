@@ -1,6 +1,7 @@
 package com.alexvasilkov.telegram.chart.widget;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
@@ -10,60 +11,65 @@ import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
 
+import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.utils.AnimationState;
 import com.alexvasilkov.telegram.chart.utils.ChartAnimator;
 import com.alexvasilkov.telegram.chart.utils.Range;
 
-class BaseChartView extends View {
+abstract class BaseChartView extends View {
 
-    protected static final int PAINT_FLAGS = Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG;
+    static final int PAINT_FLAGS = Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG;
 
     private final ChartAnimator animator;
     private final Path path = new Path();
     private final Paint pathPaint = new Paint(PAINT_FLAGS);
-    protected final Matrix matrix = new Matrix();
+    final Matrix matrix = new Matrix();
 
     private final Range pendingRange = new Range();
     private boolean pendingAnimateX;
     private boolean pendingAnimateY;
 
-    protected final Range xRange = new Range();
-    protected final Range xRangeExt = new Range();
+    private AnimationState[] linesStates;
+
+    final Range xRange = new Range();
+    final Range xRangeExt = new Range();
     private final Range xRangeStart = new Range();
-    protected final Range xRangeEnd = new Range();
+    private final Range xRangeEnd = new Range();
     private final AnimationState xRangeState = new AnimationState();
 
-    protected final Range yRange = new Range();
+    private final Range yRange = new Range();
     private final Range yRangeStart = new Range();
-    protected final Range yRangeEnd = new Range();
+    final Range yRangeEnd = new Range();
     private final AnimationState yRangeState = new AnimationState();
 
-    protected Chart chart;
-    protected final Range chartRange = new Range();
+    Chart chart;
+    final Range chartRange = new Range();
 
     private final Rect insets = new Rect();
     private final Rect chartPos = new Rect();
 
 
-    protected BaseChartView(Context context, AttributeSet attrs) {
+    BaseChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
+
+        TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.BaseChartView);
+        float lineWidth =
+                arr.getDimension(R.styleable.BaseChartView_chart_lineWidth, dpToPx(2f));
+        arr.recycle();
 
         animator = new ChartAnimator(this, this::onAnimationStep);
 
         pathPaint.setStyle(Paint.Style.STROKE);
-        pathPaint.setStrokeWidth(dpToPx(2f));
+        pathPaint.setStrokeWidth(lineWidth);
 
         setWillNotDraw(false);
     }
 
 
-    protected void setInsets(int left, int top, int right, int bottom) {
+    @SuppressWarnings("SameParameterValue")
+    void setInsets(int left, int top, int right, int bottom) {
         insets.set(left, top, right, bottom);
-    }
-
-    protected void setStrokeWidth(float strokeDp) {
-        pathPaint.setStrokeWidth(dpToPx(strokeDp));
     }
 
 
@@ -86,7 +92,7 @@ class BaseChartView extends View {
         notifyReady();
     }
 
-    protected Rect getChartPosition() {
+    Rect getChartPosition() {
         chartPos.set(
                 getPaddingLeft() + insets.left,
                 getPaddingTop() + insets.top,
@@ -102,6 +108,12 @@ class BaseChartView extends View {
     public void setChart(Chart newChart) {
         chart = newChart;
         chartRange.set(0, newChart.x.length - 1);
+
+        linesStates = new AnimationState[chart.lines.size()];
+        for (int i = 0, size = linesStates.length; i < size; i++) {
+            linesStates[i] = new AnimationState();
+            linesStates[i].setTo(1f); // Visible by default
+        }
 
         pendingRange.set(chartRange);
         pendingAnimateX = false;
@@ -121,8 +133,24 @@ class BaseChartView extends View {
         notifyReady();
     }
 
+    public void setLine(int pos, boolean visible, boolean animate) {
+        final float target = visible ? 1f : 0f;
+        if (animate) {
+            linesStates[pos].animateTo(target);
+        } else {
+            linesStates[pos].setTo(target);
+        }
 
-    protected boolean isReady() {
+        // requesting ranges update
+        pendingRange.set(xRangeEnd);
+        pendingAnimateX = animate;
+        pendingAnimateY = animate;
+
+        notifyReady();
+    }
+
+
+    boolean isReady() {
         final Rect position = getChartPosition();
         return isAttachedToWindow() && chart != null && chartRange.size() > 1
                 && position.width() > 0 && position.height() > 0;
@@ -134,7 +162,7 @@ class BaseChartView extends View {
         }
     }
 
-    protected void doOnReady() {
+    void doOnReady() {
         notifyRangeSet();
 
         boolean animationNeeded = onAnimationStep();
@@ -157,20 +185,27 @@ class BaseChartView extends View {
         final int fromXInt = (int) Math.floor(fromX);
         final int toXInt = (int) Math.ceil(toX);
 
-        // Calculating min Y value across all visible lines
+        // Calculating min and max Y value across all visible lines
         int minY = Integer.MAX_VALUE;
-        for (Chart.Line line : chart.lines) {
+        int maxY = Integer.MIN_VALUE;
+
+        for (int l = 0, size = chart.lines.size(); l < size; l++) {
+            if (linesStates[l].getTarget() != 1f) {
+                continue; // Ignoring invisible lines
+            }
+
+            final Chart.Line line = chart.lines.get(l);
             for (int i = fromXInt; i <= toXInt; i++) {
                 minY = minY > line.y[i] ? line.y[i] : minY;
+                maxY = maxY < line.y[i] ? line.y[i] : maxY;
             }
         }
 
-        // Calculating max Y value across all visible lines
-        int maxY = Integer.MIN_VALUE;
-        for (Chart.Line line : chart.lines) {
-            for (int i = fromXInt; i <= toXInt; i++) {
-                maxY = maxY < line.y[i] ? line.y[i] : maxY;
-            }
+        if (minY == Integer.MAX_VALUE) {
+            minY = 0;
+        }
+        if (maxY == Integer.MIN_VALUE) {
+            maxY = minY + 1;
         }
 
         onRangeSet(fromX, toX, minY, maxY, pendingAnimateX, pendingAnimateY);
@@ -180,7 +215,7 @@ class BaseChartView extends View {
         pendingAnimateX = pendingAnimateY = false;
     }
 
-    protected void onRangeSet(
+    void onRangeSet(
             float fromX, float toX, float fromY, float toY, boolean animateX, boolean animateY) {
 
         // Ensure Y range has at lest 2 points
@@ -222,13 +257,24 @@ class BaseChartView extends View {
         yRangeEnd.set(fromY, toY);
     }
 
-    protected boolean onAnimationStep() {
+    boolean onAnimationStep() {
         onUpdateChartState();
 
-        return !xRangeState.isFinished() || !yRangeState.isFinished();
+        boolean result = !xRangeState.isFinished() || !yRangeState.isFinished();
+
+        for (AnimationState state : linesStates) {
+            result |= !state.isFinished();
+        }
+
+        return result;
     }
 
-    protected void onUpdateChartState() {
+    void onUpdateChartState() {
+        // Updating lines visibility states if animating
+        for (AnimationState state : linesStates) {
+            state.update();
+        }
+
         // Updating X range if animating
         if (!xRangeState.isFinished()) {
             xRangeState.update();
@@ -279,16 +325,25 @@ class BaseChartView extends View {
         int from = (int) Math.floor(xRangeExt.from);
         int to = (int) Math.ceil(xRangeExt.to);
 
-        for (Chart.Line line : chart.lines) {
+        for (int l = 0, size = chart.lines.size(); l < size; l++) {
+            final float state = linesStates[l].getState();
+            if (state == 0f) {
+                continue; // Ignoring invisible lines
+            }
+
+            final Chart.Line line = chart.lines.get(l);
             setPath(path, line.y, from, to);
             path.transform(matrix);
+
             pathPaint.setColor(line.color);
+            pathPaint.setAlpha(Math.round(255 * state));
+
             canvas.drawPath(path, pathPaint);
         }
     }
 
     private void setPath(Path path, int[] y, int from, int to) {
-        path.rewind(); // TODO: Or reset? Test it?
+        path.reset();
         for (int i = from; i <= to; i++) {
             if (i == from) {
                 path.moveTo(i, y[i]);
@@ -299,7 +354,7 @@ class BaseChartView extends View {
     }
 
 
-    protected float dpToPx(float value) {
+    float dpToPx(float value) {
         return TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, value, getResources().getDisplayMetrics());
     }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="BaseChartView">
+        <attr name="chart_lineWidth" format="reference|dimension" />
+    </declare-styleable>
+
+    <declare-styleable name="ChartView">
+        <attr name="chart_labelsTextSize" format="reference|dimension" />
+        <attr name="chart_labelsColor" format="reference|color" />
+        <attr name="chart_labelsStrokeColor" format="reference|color" />
+        <attr name="chart_labelsDotColor" format="reference|color" />
+        <attr name="chart_guidesColor" format="reference|color" />
+        <attr name="chart_guidesWidth" format="reference|dimension" />
+        <attr name="chart_guidesNumber" format="reference|integer" />
+    </declare-styleable>
+
+    <declare-styleable name="ChartFinderView">
+        <attr name="chart_foregroundColor" format="reference|color" />
+        <attr name="chart_frameColor" format="reference|color" />
+    </declare-styleable>
+
+</resources>

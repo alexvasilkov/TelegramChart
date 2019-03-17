@@ -1,11 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="primary">#212d3b</color>
-    <color name="primaryDark">#1a242e</color>
+    <color name="primary">#283747</color>
+    <color name="primaryDark">#212E3B</color>
     <color name="accent">#7bc4fb</color>
 
-    <color name="window_background">#151e27</color>
-    <color name="background">#1a242e</color>
+    <color name="window_background">#1C2733</color>
+    <color name="background">#243140</color>
+    <color name="divider">#161f2b</color>
+
+    <color name="text_primary">#FFFFFF</color>
+
+    <color name="chart_guides">@color/divider</color>
+    <color name="chart_labels">#6B8599</color>
+    <color name="chart_labels_dot">#25374D</color>
+
+    <color name="finder_foreground">#B3222233</color>
+    <color name="finder_frame">#45457299</color>
 
 </resources>

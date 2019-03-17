@@ -2,4 +2,6 @@
 
     <string name="app_name">Telegram Chart</string>
 
+    <string name="menu_night_mode">Toggle night mode</string>
+
 </resources>

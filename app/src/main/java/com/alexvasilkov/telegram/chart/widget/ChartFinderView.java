@@ -1,8 +1,8 @@
 package com.alexvasilkov.telegram.chart.widget;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
@@ -10,18 +10,21 @@ import android.view.GestureDetector.OnGestureListener;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.MotionEvent;
 
+import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
 
 public class ChartFinderView extends BaseChartView {
 
-    private final float handleWidth = dpToPx(6);
+    private final float frameXWidth = dpToPx(6);
+    private final float frameYWidth = dpToPx(1);
     private final float handleTouchOffset = dpToPx(20);
-    private final float handlesMinDistance = dpToPx(10);
+    private final float handlesMinDistance = dpToPx(60);
 
     private final Range handleRange = new Range();
-    private final Paint handlePaint = new Paint(PAINT_FLAGS);
+    private final Paint foregroundPaint = new Paint(PAINT_FLAGS);
+    private final Paint framePaint = new Paint(PAINT_FLAGS);
     private Integer selectedHandle; // -1 for left, 1 for right and 0 for both
     private boolean firstScrollEvent;
 
@@ -33,8 +36,17 @@ public class ChartFinderView extends BaseChartView {
     public ChartFinderView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        handlePaint.setStyle(Paint.Style.FILL);
-        handlePaint.setColor(Color.parseColor("#88a1b1c1"));
+        TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.ChartFinderView);
+        int foregroundColor =
+                arr.getColor(R.styleable.ChartFinderView_chart_foregroundColor, 0x44000000);
+        int frameColor = arr.getColor(R.styleable.ChartFinderView_chart_frameColor, 0x88000000);
+        arr.recycle();
+
+        foregroundPaint.setStyle(Paint.Style.FILL);
+        foregroundPaint.setColor(foregroundColor);
+
+        framePaint.setStyle(Paint.Style.FILL);
+        framePaint.setColor(frameColor);
 
         OnGestureListener listener = new SimpleOnGestureListener() {
             @Override
@@ -49,7 +61,6 @@ public class ChartFinderView extends BaseChartView {
         };
         gestureDetector = new GestureDetector(context, listener);
 
-        setStrokeWidth(1f);
         setInsets(0, (int) dpToPx(4f), 0, (int) dpToPx(4f));
     }
 
@@ -63,8 +74,13 @@ public class ChartFinderView extends BaseChartView {
     public void setChart(Chart chart) {
         super.setChart(chart);
         handleRange.set(chartRange);
-
         chartView.setChart(chart);
+    }
+
+    @Override
+    public void setLine(int pos, boolean visible, boolean animate) {
+        super.setLine(pos, visible, animate);
+        chartView.setLine(pos, visible, animate);
     }
 
     @Override
@@ -99,17 +115,17 @@ public class ChartFinderView extends BaseChartView {
                 selectedHandle = 0;
             }
 
-            firstScrollEvent = selectedHandle != null;
+            if (selectedHandle != null) {
+                getParent().requestDisallowInterceptTouchEvent(true);
+                firstScrollEvent = true;
+            }
         }
 
         return selectedHandle != null;
     }
 
     private void onUpOrCancelEvent() {
-        if (selectedHandle != null) {
-            selectedHandle = null;
-            chartView.snapToClosest(true);
-        }
+        selectedHandle = null;
     }
 
     private boolean onScrollEvent(float distanceX) {
@@ -188,8 +204,25 @@ public class ChartFinderView extends BaseChartView {
         float leftPos = ChartMath.mapX(matrix, handleRange.from);
         float rightPos = ChartMath.mapX(matrix, handleRange.to);
 
-        canvas.drawRect(leftPos, 0, leftPos + handleWidth, getHeight(), handlePaint);
-        canvas.drawRect(rightPos - handleWidth, 0, rightPos, getHeight(), handlePaint);
+        // Foreground
+        // Left
+        canvas.drawRect(getPaddingLeft(), 0, leftPos, getHeight(), foregroundPaint);
+        // Right
+        canvas.drawRect(rightPos, 0, getWidth() - getPaddingRight(), getHeight(), foregroundPaint);
+
+        // Frame
+        // Left
+        canvas.drawRect(leftPos, 0, leftPos + frameXWidth, getHeight(), framePaint);
+        // Right
+        canvas.drawRect(rightPos - frameXWidth, 0, rightPos, getHeight(), framePaint);
+        // Top
+        canvas.drawRect(
+                leftPos + frameXWidth, 0,
+                rightPos - frameXWidth, frameYWidth, framePaint);
+        // Bottom
+        canvas.drawRect(
+                leftPos + frameXWidth, getHeight() - frameYWidth,
+                rightPos - frameXWidth, getHeight(), framePaint);
     }
 
 }

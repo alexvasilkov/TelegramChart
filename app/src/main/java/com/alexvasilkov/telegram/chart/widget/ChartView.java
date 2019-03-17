@@ -1,6 +1,7 @@
 package com.alexvasilkov.telegram.chart.widget;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
@@ -8,10 +9,10 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 
+import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.utils.AnimationState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
-import com.alexvasilkov.telegram.chart.utils.Range;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -19,12 +20,10 @@ import java.util.List;
 
 public class ChartView extends BaseChartView {
 
-    private static final int Y_GUIDES_COUNT = 6;
-
     private static final Rect textBounds = new Rect();
 
-    private final int topInset = (int) dpToPx(20f);
-    private final int bottomInset = (int) dpToPx(16f);
+    private final int topInset;
+    private final int yGuidesCount;
 
     private final float xLabelPadding = dpToPx(10f);
     private final float yLabelPaddingBottom = dpToPx(5f);
@@ -51,25 +50,39 @@ public class ChartView extends BaseChartView {
     public ChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
+        TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.ChartView);
+        float labelsSize =
+                arr.getDimension(R.styleable.ChartView_chart_labelsTextSize, dpToPx(12f));
+        int labelsColor = arr.getColor(R.styleable.ChartView_chart_labelsColor, Color.DKGRAY);
+        int labelsStrokeColor =
+                arr.getColor(R.styleable.ChartView_chart_labelsStrokeColor, Color.TRANSPARENT);
+        int labelsDotColor = arr.getColor(R.styleable.ChartView_chart_labelsDotColor, Color.DKGRAY);
+        float guidesWidth = arr.getDimension(R.styleable.ChartView_chart_guidesWidth, dpToPx(1f));
+        int guidesColor = arr.getColor(R.styleable.ChartView_chart_guidesColor, Color.LTGRAY);
+        yGuidesCount = arr.getInt(R.styleable.ChartView_chart_guidesNumber, 6);
+        arr.recycle();
+
         yGuidesPaint.setStyle(Paint.Style.STROKE);
-        yGuidesPaint.setStrokeWidth(dpToPx(1f));
-        yGuidesPaint.setColor(Color.parseColor("#F1F1F1"));
+        yGuidesPaint.setStrokeWidth(guidesWidth);
+        yGuidesPaint.setColor(guidesColor);
 
-        xLabelPaint.setTextSize(dpToPx(12f));
-        xLabelPaint.setColor(Color.parseColor("#96a2aa"));
+        xLabelPaint.setTextSize(labelsSize);
+        xLabelPaint.setColor(labelsColor);
 
-        yLabelPaint.setTextSize(dpToPx(12f));
-        yLabelPaint.setColor(Color.parseColor("#96a2aa"));
+        yLabelPaint.setTextSize(labelsSize);
+        yLabelPaint.setColor(labelsColor);
 
         yLabelStrokePaint.set(yLabelPaint);
         yLabelStrokePaint.setStyle(Paint.Style.STROKE);
         yLabelStrokePaint.setStrokeWidth(dpToPx(2f));
-        yLabelStrokePaint.setColor(Color.parseColor("#F1F1F1"));
+        yLabelStrokePaint.setColor(labelsStrokeColor);
 
-        xLabelDotPaint.setStrokeWidth(dpToPx(2f));
-        xLabelDotPaint.setColor(Color.parseColor("#E1E1E1"));
+        xLabelDotPaint.setStrokeWidth(guidesWidth * 2f);
+        xLabelDotPaint.setColor(labelsDotColor);
         xLabelDotPaint.setStrokeCap(Paint.Cap.ROUND);
 
+        topInset = (int) (1.25f * labelsSize + yLabelPaddingBottom);
+        int bottomInset = (int) (1.33f * labelsSize);
         setInsets(0, topInset, 0, bottomInset);
     }
 
@@ -118,7 +131,7 @@ public class ChartView extends BaseChartView {
 
         // Adjusting Y range to better fit chart height + extra inset on top.
         // Final range will be divisible by the number of intervals, to have integer guide values.
-        final int yIntervals = Y_GUIDES_COUNT - 1;
+        final int yIntervals = yGuidesCount - 1;
         final int chartHeight = getChartPosition().height();
         final float minToY = toY - (toY - fromY) * topInset / (chartHeight + topInset);
 
@@ -249,13 +262,13 @@ public class ChartView extends BaseChartView {
 
             // Setting up values in-between
             if (prevPos != -1) {
-                fillLevelsInHalfs(levels, stepsPerInterval, prevPos, pos);
+                fillLevelsInHalves(levels, stepsPerInterval, prevPos, pos);
             }
             prevPos = pos;
         }
     }
 
-    private static void fillLevelsInHalfs(int[] levels, int prevLevel, int from, int to) {
+    private static void fillLevelsInHalves(int[] levels, int prevLevel, int from, int to) {
         final int level = prevLevel / 2;
 
         if (level <= 1) {
@@ -265,56 +278,13 @@ public class ChartView extends BaseChartView {
         } else {
             final int mid = (to + from) / 2;
             levels[mid] = level; // Can't be less than 1
-            fillLevelsInHalfs(levels, level, from, mid);
-            fillLevelsInHalfs(levels, level, mid, to);
+            fillLevelsInHalves(levels, level, from, mid);
+            fillLevelsInHalves(levels, level, mid, to);
         }
     }
 
     private static float computeCurrentLevel(float size, float maxIntervals) {
         return (size - 1f) / maxIntervals;
-    }
-
-
-    /**
-     * Sets an integer range that is closest to current X range.
-     */
-    public void snapToClosest(boolean animate) {
-        final Range range = xRangeEnd;
-
-        if (xLabelsLevel <= 1f) {
-            return; // No snapping needed
-        }
-
-        final float maxSteps = chartRange.size() / xMaxIntervals;
-
-        final int from = Math.round(range.from);
-        int closestFrom = from;
-        for (int i = 0; i < maxSteps; i++) {
-            if (xLabels.get(from - i).level >= xLabelsLevel) {
-                closestFrom = from - i;
-                break;
-            } else if (xLabels.get(from + i).level >= xLabelsLevel) {
-                closestFrom = from + i;
-                break;
-            }
-        }
-
-        final int to = Math.round(range.to);
-        int closestTo = to;
-        for (int i = 0; i < maxSteps; i++) {
-            if (xLabels.get(to + i).level >= xLabelsLevel) {
-                closestTo = to + i;
-                break;
-            } else if (xLabels.get(to - i).level >= xLabelsLevel) {
-                closestTo = to - i;
-                break;
-            }
-        }
-
-        // Applying new closes range
-        if (range.from != closestFrom || range.to != closestTo) {
-            setRange(closestFrom, closestTo, animate, animate);
-        }
     }
 
 
@@ -415,9 +385,9 @@ public class ChartView extends BaseChartView {
 
         // Drawing Y labels
         for (YGuides guides : yGuidesOld) {
-            drawYLabels(canvas, guides, left, right);
+            drawYLabels(canvas, guides, left);
         }
-        drawYLabels(canvas, yGuides, left, right);
+        drawYLabels(canvas, yGuides, left);
 
         // Drawing X labels
         final float fromX = xRange.from;
@@ -435,7 +405,7 @@ public class ChartView extends BaseChartView {
         for (int i = fromExtX; i <= toExtX; i++) {
             XLabel label = xLabels.get(i);
 
-            if (!label.animation.isSet()) {
+            if (!label.animation.isSet() || label.animation.getState() == 0f) {
                 continue;
             }
 
@@ -484,7 +454,7 @@ public class ChartView extends BaseChartView {
         }
     }
 
-    private void drawYLabels(Canvas canvas, YGuides guides, float left, float right) {
+    private void drawYLabels(Canvas canvas, YGuides guides, float left) {
         yLabelStrokePaint.setAlpha(toAlpha(guides.animation.getState()));
         yLabelPaint.setAlpha(toAlpha(guides.animation.getState()));
 

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <merge
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
 
@@ -12,20 +13,47 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/background"
+            android:elevation="2dp"
             android:orientation="vertical">
 
             <com.alexvasilkov.telegram.chart.widget.ChartView
                 android:id="@+id/chart_view"
                 android:layout_width="match_parent"
                 android:layout_height="320dp"
-                android:padding="16dp" />
+                android:padding="16dp"
+                app:chart_guidesColor="@color/chart_guides"
+                app:chart_guidesNumber="6"
+                app:chart_guidesWidth="1dp"
+                app:chart_labelsColor="@color/chart_labels"
+                app:chart_labelsDotColor="@color/chart_labels_dot"
+                app:chart_labelsStrokeColor="@color/background"
+                app:chart_labelsTextSize="12sp"
+                app:chart_lineWidth="2dp" />
 
             <com.alexvasilkov.telegram.chart.widget.ChartFinderView
                 android:id="@+id/chart_finder_view"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_margin="16dp"
-                android:background="#f5f8f9" />
+                android:layout_height="40dp"
+                android:paddingLeft="16dp"
+                android:paddingTop="4dp"
+                android:paddingRight="16dp"
+                android:paddingBottom="4dp"
+                app:chart_foregroundColor="@color/finder_foreground"
+                app:chart_frameColor="@color/finder_frame"
+                app:chart_lineWidth="1dp" />
+
+            <LinearLayout
+                android:id="@+id/chart_lines"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="8dp"
+                android:clipToPadding="false"
+                android:divider="@drawable/chart_line_item_divider"
+                android:orientation="vertical"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:showDividers="middle" />
 
         </LinearLayout>
 
