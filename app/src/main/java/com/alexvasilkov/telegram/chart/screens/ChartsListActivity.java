@@ -1,6 +1,7 @@
 package com.alexvasilkov.telegram.chart.screens;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -27,7 +28,8 @@ public class ChartsListActivity extends BaseActivity {
         ChartsLoader.loadCharts(
                 getApplicationContext(),
                 this::setChartsList,
-                Throwable::printStackTrace
+                (Throwable ex) -> Log.e("Charts", "Can't read charts", ex)
+
         );
     }
 

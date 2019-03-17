@@ -14,49 +14,25 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-class ChartJson {
+class ChartParser {
 
-    private final Object[][] columns;
-    private final Map<String, String> types;
-    private final Map<String, String> names;
-    private final Map<String, String> colors;
+    private ChartParser() {} // No instances
 
-    ChartJson(JSONObject object) throws JSONException {
-        this.columns = toArrayOfArrays(object.getJSONArray("columns"));
-        this.types = toMap(object.getJSONObject("types"));
-        this.names = toMap(object.getJSONObject("names"));
-        this.colors = toMap(object.getJSONObject("colors"));
-    }
-
-
-    private static Map<String, String> toMap(JSONObject object) throws JSONException {
-        Map<String, String> map = new HashMap<>();
-        for (Iterator<String> iterator = object.keys(); iterator.hasNext(); ) {
-            String key = iterator.next();
-            map.put(key, object.getString(key));
-
+    static List<Chart> parseList(String json) throws JSONException {
+        final JSONArray array = new JSONArray(json);
+        final List<Chart> charts = new ArrayList<>();
+        for (int i = 0, size = array.length(); i < size; i++) {
+            charts.add(parse(array.getJSONObject(i)));
         }
-        return map;
+        return charts;
     }
 
-    private static Object[][] toArrayOfArrays(JSONArray array) throws JSONException {
-        Object[][] result = new Object[array.length()][];
-        for (int i = 0, size = result.length; i < size; i++) {
-            result[i] = toArray(array.getJSONArray(i));
-        }
-        return result;
-    }
+    private static Chart parse(JSONObject object) throws JSONException {
+        final Object[][] columns = toArrayOfArrays(object.getJSONArray("columns"));
+        final Map<String, String> types = toMap(object.getJSONObject("types"));
+        final Map<String, String> names = toMap(object.getJSONObject("names"));
+        final Map<String, String> colors = toMap(object.getJSONObject("colors"));
 
-    private static Object[] toArray(JSONArray array) throws JSONException {
-        Object[] result = new Object[array.length()];
-        for (int i = 0, size = result.length; i < size; i++) {
-            result[i] = array.get(i);
-        }
-        return result;
-    }
-
-
-    Chart convert() {
         checkNotNull(columns);
         checkNotNull(types);
         checkNotNull(names);
@@ -96,6 +72,33 @@ class ChartJson {
     }
 
 
+    private static Map<String, String> toMap(JSONObject object) throws JSONException {
+        Map<String, String> map = new HashMap<>();
+        for (Iterator<String> iterator = object.keys(); iterator.hasNext(); ) {
+            String key = iterator.next();
+            map.put(key, object.getString(key));
+
+        }
+        return map;
+    }
+
+    private static Object[][] toArrayOfArrays(JSONArray array) throws JSONException {
+        Object[][] result = new Object[array.length()][];
+        for (int i = 0, size = result.length; i < size; i++) {
+            result[i] = toArray(array.getJSONArray(i));
+        }
+        return result;
+    }
+
+    private static Object[] toArray(JSONArray array) throws JSONException {
+        Object[] result = new Object[array.length()];
+        for (int i = 0, size = result.length; i < size; i++) {
+            result[i] = array.get(i);
+        }
+        return result;
+    }
+
+
     private static List<String> getKeysForValue(Map<String, String> map, String value) {
         ArrayList<String> keys = new ArrayList<>();
 
@@ -123,6 +126,7 @@ class ChartJson {
         }
         return result;
     }
+
 
     private static void checkNotNull(Object value) {
         if (value == null) {
