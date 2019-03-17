@@ -9,7 +9,7 @@
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColor">?android:textColorPrimary</item>
 
-        <item name="android:navigationBarColor">@color/window_background</item>
+        <item name="android:navigationBarColor">@color/primaryDark</item>
     </style>
 
 </resources>

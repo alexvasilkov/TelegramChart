@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="48dp"
     android:layout_marginLeft="-6dp"
+    android:layout_marginRight="16dp"
     android:paddingLeft="12dp"
     android:textColor="?android:textColorPrimary"
     android:textSize="14sp"

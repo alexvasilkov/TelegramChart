@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".MainActivity">
+    tools:context=".screens.ChartActivity">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -20,6 +20,7 @@
                 android:id="@+id/chart_view"
                 android:layout_width="match_parent"
                 android:layout_height="320dp"
+                android:layout_marginTop="8dp"
                 android:padding="16dp"
                 app:chart_guidesColor="@color/chart_guides"
                 app:chart_guidesNumber="6"
@@ -49,11 +50,11 @@
                 android:layout_marginTop="4dp"
                 android:layout_marginBottom="8dp"
                 android:clipToPadding="false"
-                android:divider="@drawable/chart_line_item_divider"
+                android:divider="@drawable/divider_horizontal"
                 android:orientation="vertical"
                 android:paddingLeft="16dp"
-                android:paddingRight="16dp"
-                android:showDividers="middle" />
+                android:showDividers="middle"
+                tools:ignore="RtlHardcoded,RtlSymmetry" />
 
         </LinearLayout>
 
