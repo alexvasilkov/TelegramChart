@@ -21,10 +21,16 @@ abstract class BaseChartView extends View {
 
     static final int PAINT_FLAGS = Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG;
 
+    private static final float OPTIMIZATION_FACTOR = 2f;
+
     private final ChartAnimator animator;
     private final Path path = new Path();
     private final Paint pathPaint = new Paint(PAINT_FLAGS);
     final Matrix matrix = new Matrix();
+
+    private final Paint pathPaintOptimized = new Paint(PAINT_FLAGS);
+    private final Matrix matrixOptimized = new Matrix();
+    private boolean optimizeDrawing;
 
     private final Range pendingRange = new Range();
     private boolean pendingAnimateX;
@@ -49,7 +55,6 @@ abstract class BaseChartView extends View {
     private final Rect insets = new Rect();
     private final Rect chartPos = new Rect();
 
-
     BaseChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
@@ -62,6 +67,7 @@ abstract class BaseChartView extends View {
 
         pathPaint.setStyle(Paint.Style.STROKE);
         pathPaint.setStrokeWidth(lineWidth);
+        pathPaint.setStrokeJoin(Paint.Join.ROUND);
 
         setWillNotDraw(false);
     }
@@ -266,6 +272,9 @@ abstract class BaseChartView extends View {
             result |= !state.isFinished();
         }
 
+        // We'll optimizing path drawing if animating, see onDraw method.
+        optimizeDrawing = result;
+
         return result;
     }
 
@@ -312,13 +321,30 @@ abstract class BaseChartView extends View {
         xRangeExt.set(fromX, toX);
     }
 
-
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
         if (!isReady()) {
             return;
+        }
+
+        canvas.save();
+
+        matrixOptimized.set(matrix);
+        pathPaintOptimized.set(pathPaint);
+
+        // Optimizing paths drawing by drawing them with less precision.
+        // It is especially important when animating Y range since path drawing may become slow if
+        // path size is too big (bigger than canvas) which is usually the case during Y animation.
+        if (optimizeDrawing) {
+            final float reversedFactor = 1f / OPTIMIZATION_FACTOR;
+            // Scaling down paths
+            matrixOptimized.postScale(reversedFactor, reversedFactor);
+            // Scaling down stroke width
+            pathPaintOptimized.setStrokeWidth(reversedFactor * pathPaintOptimized.getStrokeWidth());
+            // Scaling up the canvas instead
+            canvas.scale(OPTIMIZATION_FACTOR, OPTIMIZATION_FACTOR);
         }
 
         // Drawing chart lines
@@ -333,16 +359,19 @@ abstract class BaseChartView extends View {
 
             final Chart.Line line = chart.lines.get(l);
             setPath(path, line.y, from, to);
-            path.transform(matrix);
+            path.transform(matrixOptimized);
 
-            pathPaint.setColor(line.color);
-            pathPaint.setAlpha(Math.round(255 * state));
+            pathPaintOptimized.setColor(line.color);
+            pathPaintOptimized.setAlpha(Math.round(255 * state));
 
-            canvas.drawPath(path, pathPaint);
+            canvas.drawPath(path, pathPaintOptimized);
         }
+
+        canvas.restore();
     }
 
-    private void setPath(Path path, int[] y, int from, int to) {
+
+    private static void setPath(Path path, int[] y, int from, int to) {
         path.reset();
         for (int i = from; i <= to; i++) {
             if (i == from) {

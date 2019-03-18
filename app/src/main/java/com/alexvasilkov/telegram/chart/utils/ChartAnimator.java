@@ -4,10 +4,13 @@ import android.view.View;
 
 public class ChartAnimator {
 
+    private static final boolean DEBUG_FPS = false;
+
     private static final long FRAME_TIME = 10L;
 
     private final View view;
     private final StepListener listener;
+    private final Fps fps = DEBUG_FPS ? new Fps() : null;
 
     private final Runnable updateAction = this::update;
 
@@ -17,6 +20,10 @@ public class ChartAnimator {
     }
 
     public void start() {
+        if (fps != null) {
+            fps.start();
+        }
+
         scheduleNextStep();
     }
 
@@ -27,6 +34,13 @@ public class ChartAnimator {
     private void update() {
         boolean continueAnimation = listener.onStep();
         view.invalidate();
+
+        if (fps != null) {
+            fps.step();
+            if (!continueAnimation) {
+                fps.stop();
+            }
+        }
 
         if (continueAnimation) {
             scheduleNextStep();
