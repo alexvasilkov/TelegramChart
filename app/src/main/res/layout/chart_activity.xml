@@ -7,7 +7,10 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -43,7 +46,7 @@
                 app:chart_foregroundColor="@color/finder_foreground"
                 app:chart_frameColor="@color/finder_frame"
                 app:chart_lineWidth="1dp"
-                app:chart_useDynamicRange="true" />
+                app:chart_useDynamicRange="false" />
 
             <LinearLayout
                 android:id="@+id/chart_lines"
@@ -55,8 +58,33 @@
                 android:divider="@drawable/divider_horizontal"
                 android:orientation="vertical"
                 android:paddingLeft="16dp"
-                android:showDividers="middle"
+                android:showDividers="middle|end"
                 tools:ignore="RtlHardcoded,RtlSymmetry" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:layout_marginRight="12dp"
+                android:layout_marginBottom="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                tools:ignore="RtlHardcoded">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dynamic_range"
+                    android:textColor="?android:textColorSecondary"
+                    android:textSize="12sp" />
+
+                <CheckBox
+                    android:id="@+id/chart_dynamic_range"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="?android:textColorSecondary" />
+
+            </LinearLayout>
 
         </LinearLayout>
 

@@ -26,7 +26,7 @@ public class ChartFinderView extends BaseChartView {
     private final float handleTouchOffset = dpToPx(20);
     private final float handlesMinDistance = dpToPx(80);
 
-    private final boolean useDynamicRange;
+    private boolean useDynamicRange;
 
     private final Range handleRange = new Range();
     private final Paint foregroundPaint = new Paint(PAINT_FLAGS);
@@ -75,6 +75,13 @@ public class ChartFinderView extends BaseChartView {
         this.chartView = chartView;
     }
 
+    public void setUseDynamicRange(boolean useDynamicRange) {
+        this.useDynamicRange = useDynamicRange;
+        if (chart != null) {
+            setChart(chart); // Resetting chart
+        }
+    }
+
     @Override
     public void setChart(Chart chart) {
         super.setChart(chart);
@@ -120,10 +127,7 @@ public class ChartFinderView extends BaseChartView {
                 selectedHandle = HANDLE_BOTH;
             }
 
-            if (selectedHandle != null) {
-                getParent().requestDisallowInterceptTouchEvent(true);
-                firstScrollEvent = true;
-            }
+            firstScrollEvent = selectedHandle != null;
         }
 
         return selectedHandle != null;
@@ -141,6 +145,7 @@ public class ChartFinderView extends BaseChartView {
         // Ignoring first scroll event (can be buggy)
         if (firstScrollEvent) {
             firstScrollEvent = false;
+            getParent().requestDisallowInterceptTouchEvent(true);
             return true;
         }
 

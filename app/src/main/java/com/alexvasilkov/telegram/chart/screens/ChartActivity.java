@@ -45,6 +45,7 @@ public class ChartActivity extends BaseActivity {
         final ChartView chartView = findViewById(R.id.chart_view);
         final ChartFinderView chartFinderView = findViewById(R.id.chart_finder_view);
         final ViewGroup linesGroup = findViewById(R.id.chart_lines);
+        final CheckBox dynamicRange = findViewById(R.id.chart_dynamic_range);
 
         chartView.setXLabelFormatter(this::formatDate);
         chartView.setYLabelFormatter(String::valueOf);
@@ -52,6 +53,11 @@ public class ChartActivity extends BaseActivity {
         chartFinderView.attachTo(chartView);
         chartFinderView.setChart(chart);
         showLines(chart.lines, linesGroup, chartFinderView);
+
+        dynamicRange.setOnCheckedChangeListener((CompoundButton button, boolean isChecked) -> {
+            chartFinderView.setUseDynamicRange(isChecked);
+            checkAll(linesGroup);
+        });
     }
 
     private void showLines(
@@ -76,6 +82,12 @@ public class ChartActivity extends BaseActivity {
                     chartFinderView.setLine(pos, isChecked, true));
 
             linesGroup.addView(check);
+        }
+    }
+
+    private void checkAll(ViewGroup linesGroup) {
+        for (int i = 0, size = linesGroup.getChildCount(); i < size; i++) {
+            ((CheckBox) linesGroup.getChildAt(i)).setChecked(true);
         }
     }
 

@@ -2,8 +2,8 @@ package com.alexvasilkov.telegram.chart.utils;
 
 public class Range {
 
-    public float from;
-    public float to;
+    public float from = 0f;
+    public float to = -1f;
 
     public void set(Range range) {
         this.from = range.from;
@@ -13,6 +13,11 @@ public class Range {
     public void set(float from, float to) {
         this.from = from;
         this.to = to;
+    }
+
+    public void reset() {
+        this.from = 0f;
+        this.to = -1f;
     }
 
     public float fit(float value) {

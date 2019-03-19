@@ -112,6 +112,14 @@ abstract class BaseChartView extends View {
      * Sets a chart to be drawn.
      */
     public void setChart(Chart newChart) {
+        xRange.reset();
+        xRangeEnd.reset();
+        xRangeState.reset();
+
+        yRange.reset();
+        yRangeEnd.reset();
+        yRangeState.reset();
+
         chart = newChart;
         chartRange.set(0, newChart.x.length - 1);
 
