@@ -13,7 +13,7 @@ import android.view.View;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
-import com.alexvasilkov.telegram.chart.utils.AnimationState;
+import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartAnimator;
 import com.alexvasilkov.telegram.chart.utils.Range;
 
@@ -36,18 +36,18 @@ abstract class BaseChartView extends View {
     private boolean pendingAnimateX;
     private boolean pendingAnimateY;
 
-    private AnimationState[] linesStates;
+    private AnimatedState[] linesStates;
 
     final Range xRange = new Range();
     final Range xRangeExt = new Range();
     private final Range xRangeStart = new Range();
     private final Range xRangeEnd = new Range();
-    private final AnimationState xRangeState = new AnimationState();
+    private final AnimatedState xRangeState = new AnimatedState();
 
     private final Range yRange = new Range();
     private final Range yRangeStart = new Range();
     final Range yRangeEnd = new Range();
-    private final AnimationState yRangeState = new AnimationState();
+    private final AnimatedState yRangeState = new AnimatedState();
 
     Chart chart;
     final Range chartRange = new Range();
@@ -115,9 +115,9 @@ abstract class BaseChartView extends View {
         chart = newChart;
         chartRange.set(0, newChart.x.length - 1);
 
-        linesStates = new AnimationState[chart.lines.size()];
+        linesStates = new AnimatedState[chart.lines.size()];
         for (int i = 0, size = linesStates.length; i < size; i++) {
-            linesStates[i] = new AnimationState();
+            linesStates[i] = new AnimatedState();
             linesStates[i].setTo(1f); // Visible by default
         }
 
@@ -268,7 +268,7 @@ abstract class BaseChartView extends View {
 
         boolean result = !xRangeState.isFinished() || !yRangeState.isFinished();
 
-        for (AnimationState state : linesStates) {
+        for (AnimatedState state : linesStates) {
             result |= !state.isFinished();
         }
 
@@ -279,21 +279,23 @@ abstract class BaseChartView extends View {
     }
 
     void onUpdateChartState() {
+        final long now = AnimatedState.now();
+
         // Updating lines visibility states if animating
-        for (AnimationState state : linesStates) {
-            state.update();
+        for (AnimatedState state : linesStates) {
+            state.update(now);
         }
 
         // Updating X range if animating
         if (!xRangeState.isFinished()) {
-            xRangeState.update();
-            xRange.interpolate(xRangeStart, xRangeEnd, xRangeState.getState());
+            xRangeState.update(now);
+            xRange.interpolate(xRangeStart, xRangeEnd, xRangeState.get());
         }
 
         // Updating Y range if animating
         if (!yRangeState.isFinished()) {
-            yRangeState.update();
-            yRange.interpolate(yRangeStart, yRangeEnd, yRangeState.getState());
+            yRangeState.update(now);
+            yRange.interpolate(yRangeStart, yRangeEnd, yRangeState.get());
         }
 
 
@@ -352,7 +354,7 @@ abstract class BaseChartView extends View {
         int to = (int) Math.ceil(xRangeExt.to);
 
         for (int l = 0, size = chart.lines.size(); l < size; l++) {
-            final float state = linesStates[l].getState();
+            final float state = linesStates[l].get();
             if (state == 0f) {
                 continue; // Ignoring invisible lines
             }

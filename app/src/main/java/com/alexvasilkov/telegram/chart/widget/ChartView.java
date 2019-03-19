@@ -11,7 +11,7 @@ import android.util.AttributeSet;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
-import com.alexvasilkov.telegram.chart.utils.AnimationState;
+import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 
 import java.util.ArrayList;
@@ -44,8 +44,8 @@ public class ChartView extends BaseChartView {
     private final Paint yLabelPaint = new Paint(PAINT_FLAGS);
     private final Paint yLabelStrokePaint = new Paint(PAINT_FLAGS);
 
-    private Function<Long, String> xLabelCreator;
-    private Function<Integer, String> yLabelCreator;
+    private Formatter xLabelFormatter;
+    private Formatter yLabelFormatter;
 
 
     public ChartView(Context context, AttributeSet attrs) {
@@ -88,12 +88,12 @@ public class ChartView extends BaseChartView {
         setInsets(0, topInset, 0, bottomInset);
     }
 
-    public void setXLabelCreator(Function<Long, String> creator) {
-        xLabelCreator = creator;
+    public void setXLabelFormatter(Formatter formatter) {
+        xLabelFormatter = formatter;
     }
 
-    public void setYLabelCreator(Function<Integer, String> creator) {
-        yLabelCreator = creator;
+    public void setYLabelFormatter(Formatter formatter) {
+        yLabelFormatter = formatter;
     }
 
     @Override
@@ -140,23 +140,23 @@ public class ChartView extends BaseChartView {
             if (yGuides != null) {
                 // Animating out old Y guides
                 yGuidesOld.add(yGuides);
-                yGuides.animation.animateTo(0f);
+                yGuides.state.animateTo(0f);
             }
 
             // Preparing new Y guides
-            yGuides = new YGuides(yIntervals + 1);
-            for (int i = 0; i <= yIntervals; i++) {
-                final int value = (int) (fromY + (toY - fromY) * i / yIntervals);
+            yGuides = new YGuides(yGuidesCount);
+            for (int i = 0; i < yGuidesCount; i++) {
+                final int value = (int) (fromY + (toY - fromY) * i / (yGuidesCount - 1));
                 yGuides.orig[i] = value;
-                yGuides.titles[i] = yLabelCreator == null
-                        ? String.valueOf(value) : yLabelCreator.call(value);
+                yGuides.titles[i] = yLabelFormatter == null
+                        ? String.valueOf(value) : yLabelFormatter.format(value);
             }
 
             if (animate) {
-                yGuides.animation.setTo(0f); // Setting initial hidden state
-                yGuides.animation.animateTo(1f); // Animating to visible state
+                yGuides.state.setTo(0f); // Setting initial hidden state
+                yGuides.state.animateTo(1f); // Animating to visible state
             } else {
-                yGuides.animation.setTo(1f); // Setting initial visible state
+                yGuides.state.setTo(1f); // Setting initial visible state
             }
         }
 
@@ -177,8 +177,8 @@ public class ChartView extends BaseChartView {
         final String[] titles = new String[size];
 
         for (int i = 0; i < size; i++) {
-            titles[i] = xLabelCreator == null
-                    ? String.valueOf(chart.x[i]) : xLabelCreator.call(chart.x[i]);
+            titles[i] = xLabelFormatter == null
+                    ? String.valueOf(chart.x[i]) : xLabelFormatter.format(chart.x[i]);
             widths[i] = measureXLabel(titles[i]);
             maxLabelWidth = Math.max(maxLabelWidth, widths[i]);
         }
@@ -290,14 +290,14 @@ public class ChartView extends BaseChartView {
 
         // Checking X labels animations states
         for (XLabel label : xLabels) {
-            result |= !label.animation.isFinished();
+            result |= !label.state.isFinished();
         }
 
         // Checking Y guides animations states
-        result |= !yGuides.animation.isFinished();
+        result |= !yGuides.state.isFinished();
 
         for (Iterator<YGuides> iterator = yGuidesOld.iterator(); iterator.hasNext(); ) {
-            boolean finished = iterator.next().animation.isFinished();
+            boolean finished = iterator.next().state.isFinished();
             if (finished) {
                 iterator.remove();
             }
@@ -326,31 +326,35 @@ public class ChartView extends BaseChartView {
     private void setXLabelsVisibility() {
         final float fromX = xRangeExt.from;
         final float toX = xRangeExt.to;
+        final long now = AnimatedState.now();
 
         for (int i = 0, size = xLabels.size(); i < size; i++) {
             final XLabel label = xLabels.get(i);
 
             // Resetting out-of-range labels
             if (i < fromX || i > toX) {
-                label.animation.reset();
+                label.state.reset();
                 continue;
             }
 
             final boolean show = label.level >= xLabelsLevel;
 
-            if (label.animation.isSet()) {
-                label.animation.update();
-                label.animation.animateTo(show ? 1f : 0f);
+            if (label.state.isSet()) {
+                label.state.update(now);
+                label.state.animateTo(show ? 1f : 0f, now);
             } else {
-                label.animation.setTo(show ? 1f : 0f);
+                label.state.setTo(show ? 1f : 0f);
             }
         }
     }
 
     private void setYGuidesVisibility() {
-        yGuides.animation.update();
+        final long now = AnimatedState.now();
+
+        yGuides.state.update(now);
+
         for (YGuides guides : yGuidesOld) {
-            guides.animation.update();
+            guides.state.update(now);
         }
     }
 
@@ -397,7 +401,7 @@ public class ChartView extends BaseChartView {
         for (int i = fromExtX; i <= toExtX; i++) {
             XLabel label = xLabels.get(i);
 
-            if (!label.animation.isSet() || label.animation.getState() == 0f) {
+            if (!label.state.isSet() || label.state.get() == 0f) {
                 continue;
             }
 
@@ -406,7 +410,7 @@ public class ChartView extends BaseChartView {
                 continue;
             }
 
-            float alpha = label.animation.getState();
+            float alpha = label.state.get();
 
             final float dotPosX = ChartMath.mapX(matrix, i);
 
@@ -438,7 +442,7 @@ public class ChartView extends BaseChartView {
     }
 
     private void drawYGuides(Canvas canvas, YGuides guides, float left, float right) {
-        yGuidesPaint.setAlpha(toAlpha(guides.animation.getState()));
+        yGuidesPaint.setAlpha(toAlpha(guides.state.get()));
 
         for (int i = 0, size = guides.size(); i < size; i++) {
             final float posY = guides.transformed[i];
@@ -447,8 +451,8 @@ public class ChartView extends BaseChartView {
     }
 
     private void drawYLabels(Canvas canvas, YGuides guides, float left) {
-        yLabelStrokePaint.setAlpha(toAlpha(guides.animation.getState()));
-        yLabelPaint.setAlpha(toAlpha(guides.animation.getState()));
+        yLabelStrokePaint.setAlpha(toAlpha(guides.state.get()));
+        yLabelPaint.setAlpha(toAlpha(guides.state.get()));
 
         for (int i = 0, size = guides.size(); i < size; i++) {
             final float posY = guides.transformed[i] - yLabelPaddingBottom;
@@ -467,8 +471,7 @@ public class ChartView extends BaseChartView {
         final String title;
         final int level;
         final float width;
-
-        final AnimationState animation = new AnimationState();
+        final AnimatedState state = new AnimatedState();
 
         XLabel(String title, int level, float width) {
             this.title = title;
@@ -481,7 +484,7 @@ public class ChartView extends BaseChartView {
         final String[] titles;
         final float[] orig;
         final float[] transformed;
-        final AnimationState animation = new AnimationState();
+        final AnimatedState state = new AnimatedState();
 
         YGuides(int size) {
             orig = new float[size];
@@ -501,8 +504,8 @@ public class ChartView extends BaseChartView {
     }
 
 
-    public interface Function<I, O> {
-        O call(I input);
+    public interface Formatter {
+        String format(long value);
     }
 
 }

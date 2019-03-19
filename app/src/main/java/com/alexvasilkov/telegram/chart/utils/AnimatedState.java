@@ -4,7 +4,7 @@ import android.os.SystemClock;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
 
-public class AnimationState {
+public class AnimatedState {
 
     private static final Interpolator INTERPOLATOR = new AccelerateDecelerateInterpolator();
 
@@ -14,9 +14,9 @@ public class AnimationState {
     private float state = Float.NaN;
     private long startedAt = 0L;
 
-    public void update() {
+    public void update(long now) {
         if (isSet() && startedAt != 0L) {
-            float animState = (SystemClock.elapsedRealtime() - startedAt) / DURATION;
+            float animState = (now - startedAt) / DURATION;
             animState = animState < 0f ? 0f : (animState > 1f ? 1f : animState);
 
             animState = INTERPOLATOR.getInterpolation(animState);
@@ -25,7 +25,7 @@ public class AnimationState {
         }
     }
 
-    public float getState() {
+    public float get() {
         return state;
     }
 
@@ -45,15 +45,19 @@ public class AnimationState {
     }
 
     public void animateTo(float target) {
+        animateTo(target, now());
+    }
+
+    public void animateTo(float target, long now) {
         if (isSet() && targetState != target) {
-            // Starting reversed animation if needed
+            // Starting animation from current to target state
             targetState = target;
 
             if (state == target) {
                 startedAt = 0L; // No animation needed
             } else {
                 float animState = target == 1f ? state : 1f - state;
-                startedAt = SystemClock.elapsedRealtime() - (long) (DURATION * animState);
+                startedAt = now - (long) (DURATION * animState);
             }
         }
     }
@@ -66,6 +70,10 @@ public class AnimationState {
 
     public boolean isFinished() {
         return !isSet() || targetState == state;
+    }
+
+    public static long now() {
+        return SystemClock.elapsedRealtime();
     }
 
 }
