@@ -1,4 +1,4 @@
-package com.alexvasilkov.telegram.chart.screens;
+package com.alexvasilkov.telegram.chart.app;
 
 import android.app.ActionBar;
 import android.app.Activity;
@@ -11,7 +11,7 @@ import android.view.MenuItem;
 
 import com.alexvasilkov.telegram.chart.R;
 
-abstract class BaseActivity extends Activity {
+public abstract class BaseActivity extends Activity {
 
     private Preferences prefs;
     private boolean isInNightMode;
@@ -36,7 +36,7 @@ abstract class BaseActivity extends Activity {
         }
     }
 
-    void showBackButton() {
+    protected void showBackButton() {
         ActionBar actionBar = getActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);

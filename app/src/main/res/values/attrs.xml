@@ -3,6 +3,8 @@
 
     <declare-styleable name="BaseChartView">
         <attr name="chart_lineWidth" format="reference|dimension" />
+        <attr name="chart_pointRadius" format="reference|dimension" />
+        <attr name="chart_pointColor" format="reference|color" />
     </declare-styleable>
 
     <declare-styleable name="ChartView">
@@ -13,10 +15,7 @@
         <attr name="chart_guidesColor" format="reference|color" />
         <attr name="chart_guidesWidth" format="reference|dimension" />
         <attr name="chart_guidesNumber" format="reference|integer" />
-        <attr name="chart_direction" format="enum">
-            <enum name="fromLeft" value="1" />
-            <enum name="fromRight" value="-1" />
-        </attr>
+        <attr name="chart_backgroundHint" format="reference|color" />
     </declare-styleable>
 
     <declare-styleable name="ChartFinderView">

@@ -1,4 +1,4 @@
-package com.alexvasilkov.telegram.chart.screens;
+package com.alexvasilkov.telegram.chart.app.list;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -9,6 +9,8 @@ import android.widget.TextView;
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.data.ChartsLoader;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.app.BaseActivity;
+import com.alexvasilkov.telegram.chart.app.chart.ChartActivity;
 
 import java.util.List;
 

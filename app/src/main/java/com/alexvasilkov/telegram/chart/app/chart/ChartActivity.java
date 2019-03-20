@@ -1,4 +1,4 @@
-package com.alexvasilkov.telegram.chart.screens;
+package com.alexvasilkov.telegram.chart.app.chart;
 
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +10,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 
 import com.alexvasilkov.telegram.chart.R;
+import com.alexvasilkov.telegram.chart.app.BaseActivity;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
@@ -49,6 +50,7 @@ public class ChartActivity extends BaseActivity {
 
         chartView.setXLabelFormatter(this::formatDate);
         chartView.setYLabelFormatter(String::valueOf);
+        chartView.setSelectionPopupAdapter(new PopupAdapter(this));
 
         chartFinderView.attachTo(chartView);
         chartFinderView.setChart(chart);

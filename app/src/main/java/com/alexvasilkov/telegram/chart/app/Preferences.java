@@ -1,4 +1,4 @@
-package com.alexvasilkov.telegram.chart.screens;
+package com.alexvasilkov.telegram.chart.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;

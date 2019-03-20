@@ -55,7 +55,7 @@ public class ChartFinderView extends BaseChartView {
         framePaint.setStyle(Paint.Style.FILL);
         framePaint.setColor(frameColor);
 
-        OnGestureListener listener = new SimpleOnGestureListener() {
+        final OnGestureListener listener = new SimpleOnGestureListener() {
             @Override
             public boolean onDown(MotionEvent e) {
                 return onDownEvent(e.getX());
@@ -67,6 +67,7 @@ public class ChartFinderView extends BaseChartView {
             }
         };
         gestureDetector = new GestureDetector(context, listener);
+        gestureDetector.setIsLongpressEnabled(false);
 
         setInsets(0, (int) dpToPx(4f), 0, (int) dpToPx(4f));
     }
@@ -142,7 +143,7 @@ public class ChartFinderView extends BaseChartView {
             return false;
         }
 
-        // Ignoring first scroll event (can be buggy)
+        // Ignoring first scroll movement (can be buggy)
         if (firstScrollEvent) {
             firstScrollEvent = false;
             getParent().requestDisallowInterceptTouchEvent(true);

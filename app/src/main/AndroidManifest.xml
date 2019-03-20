@@ -11,7 +11,7 @@
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
 
-        <activity android:name=".screens.ChartsListActivity">
+        <activity android:name=".app.list.ChartsListActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -19,7 +19,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".screens.ChartActivity" />
+        <activity android:name=".app.chart.ChartActivity" />
 
     </application>
 

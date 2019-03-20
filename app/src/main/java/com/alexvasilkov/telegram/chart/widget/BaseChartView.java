@@ -3,6 +3,7 @@ package com.alexvasilkov.telegram.chart.widget;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -15,6 +16,7 @@ import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartAnimator;
+import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
 
 abstract class BaseChartView extends View {
@@ -25,7 +27,11 @@ abstract class BaseChartView extends View {
 
     private final ChartAnimator animator;
     private final Path path = new Path();
+
     private final Paint pathPaint = new Paint(PAINT_FLAGS);
+    private final Paint pointPaint = new Paint(PAINT_FLAGS);
+    private final float pointRadius;
+
     final Matrix matrix = new Matrix();
 
     private final Paint pathPaintOptimized = new Paint(PAINT_FLAGS);
@@ -37,6 +43,7 @@ abstract class BaseChartView extends View {
     private boolean pendingAnimateY;
 
     private AnimatedState[] linesStates;
+    private boolean[] linesVisibility;
 
     final Range xRange = new Range();
     final Range xRangeExt = new Range();
@@ -55,12 +62,18 @@ abstract class BaseChartView extends View {
     private final Rect insets = new Rect();
     private final Rect chartPos = new Rect();
 
+    private int selectedPointX = -1;
+
+
     BaseChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.BaseChartView);
-        float lineWidth =
+        final float lineWidth =
                 arr.getDimension(R.styleable.BaseChartView_chart_lineWidth, dpToPx(2f));
+        final int pointColor =
+                arr.getColor(R.styleable.BaseChartView_chart_pointColor, Color.WHITE);
+        pointRadius = arr.getDimension(R.styleable.BaseChartView_chart_pointRadius, dpToPx(4f));
         arr.recycle();
 
         animator = new ChartAnimator(this, this::onAnimationStep);
@@ -68,6 +81,9 @@ abstract class BaseChartView extends View {
         pathPaint.setStyle(Paint.Style.STROKE);
         pathPaint.setStrokeWidth(lineWidth);
         pathPaint.setStrokeJoin(Paint.Join.ROUND);
+
+        pointPaint.setStyle(Paint.Style.FILL);
+        pointPaint.setColor(pointColor);
 
         setWillNotDraw(false);
     }
@@ -120,13 +136,18 @@ abstract class BaseChartView extends View {
         yRangeEnd.reset();
         yRangeState.reset();
 
+        selectedPointX = -1;
+
         chart = newChart;
         chartRange.set(0, newChart.x.length - 1);
 
-        linesStates = new AnimatedState[chart.lines.size()];
+        final int linesCount = chart.lines.size();
+        linesStates = new AnimatedState[linesCount];
+        linesVisibility = new boolean[linesCount];
+
         for (int i = 0, size = linesStates.length; i < size; i++) {
             linesStates[i] = new AnimatedState();
-            linesStates[i].setTo(1f); // Visible by default
+            linesStates[i].setTo(1f); // All lines are visible by default
         }
 
         pendingRange.set(chartRange);
@@ -161,6 +182,18 @@ abstract class BaseChartView extends View {
         pendingAnimateY = animate;
 
         notifyReady();
+    }
+
+    public boolean[] getLinesVisibility() {
+        for (int i = 0, size = linesStates.length; i < size; i++) {
+            linesVisibility[i] = linesStates[i].getTarget() == 1f;
+        }
+        return linesVisibility;
+    }
+
+    void setSelectedPointX(int selectedX) {
+        selectedPointX = selectedX;
+        invalidate();
     }
 
 
@@ -358,28 +391,34 @@ abstract class BaseChartView extends View {
         }
 
         // Drawing chart lines
+        drawChartLines(canvas);
+
+        // Drawing selected points. We need to do it on top of already drawn lines.
+        drawSelectedPoints(canvas);
+
+        canvas.restore();
+    }
+
+
+    private void drawChartLines(Canvas canvas) {
         int from = (int) Math.floor(xRangeExt.from);
         int to = (int) Math.ceil(xRangeExt.to);
 
         for (int l = 0, size = chart.lines.size(); l < size; l++) {
             final float state = linesStates[l].get();
+            final Chart.Line line = chart.lines.get(l);
             if (state == 0f) {
                 continue; // Ignoring invisible lines
             }
 
-            final Chart.Line line = chart.lines.get(l);
+            pathPaintOptimized.setColor(line.color);
+            pathPaintOptimized.setAlpha(toAlpha(state));
+
             setPath(path, line.y, from, to);
             path.transform(matrixOptimized);
-
-            pathPaintOptimized.setColor(line.color);
-            pathPaintOptimized.setAlpha(Math.round(255 * state));
-
             canvas.drawPath(path, pathPaintOptimized);
         }
-
-        canvas.restore();
     }
-
 
     private static void setPath(Path path, int[] y, int from, int to) {
         path.reset();
@@ -392,10 +431,42 @@ abstract class BaseChartView extends View {
         }
     }
 
+    private void drawSelectedPoints(Canvas canvas) {
+        if (selectedPointX == -1) {
+            return;
+        }
+
+        // Scaling down point radius if optimization is enabled
+        final float radius = optimizeDrawing ? pointRadius / OPTIMIZATION_FACTOR : pointRadius;
+
+        for (int l = 0, size = chart.lines.size(); l < size; l++) {
+            final float state = linesStates[l].get();
+            final Chart.Line line = chart.lines.get(l);
+            if (state == 0f) {
+                continue; // Ignoring invisible lines
+            }
+
+            pathPaintOptimized.setColor(line.color);
+            pathPaintOptimized.setAlpha(toAlpha(state));
+            // Point's alpha should change much slower than main path
+            pointPaint.setAlpha(toAlpha((float) Math.sqrt(Math.sqrt(state))));
+
+            float posX = ChartMath.mapX(matrixOptimized, selectedPointX);
+            float posY = ChartMath.mapY(matrixOptimized, line.y[selectedPointX]);
+
+            canvas.drawCircle(posX, posY, radius, pointPaint);
+            canvas.drawCircle(posX, posY, radius, pathPaintOptimized);
+        }
+    }
+
 
     float dpToPx(float value) {
         return TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, value, getResources().getDisplayMetrics());
+    }
+
+    static int toAlpha(float alpha) {
+        return Math.round(255 * alpha);
     }
 
 }

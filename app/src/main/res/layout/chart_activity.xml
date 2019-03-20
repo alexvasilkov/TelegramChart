@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".screens.ChartActivity">
+    tools:context=".app.chart.ChartActivity">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -25,7 +25,6 @@
                 android:layout_height="320dp"
                 android:layout_marginTop="8dp"
                 android:padding="16dp"
-                app:chart_direction="fromRight"
                 app:chart_guidesColor="@color/chart_guides"
                 app:chart_guidesNumber="6"
                 app:chart_guidesWidth="1dp"
@@ -33,7 +32,9 @@
                 app:chart_labelsDotColor="@color/chart_labels_dot"
                 app:chart_labelsStrokeColor="@color/background"
                 app:chart_labelsTextSize="12sp"
-                app:chart_lineWidth="2dp" />
+                app:chart_lineWidth="2dp"
+                app:chart_pointColor="@color/background"
+                app:chart_pointRadius="4dp" />
 
             <com.alexvasilkov.telegram.chart.widget.ChartFinderView
                 android:id="@+id/chart_finder_view"
