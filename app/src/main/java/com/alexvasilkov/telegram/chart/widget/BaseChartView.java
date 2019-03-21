@@ -6,7 +6,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -24,22 +23,16 @@ abstract class BaseChartView extends View {
 
     static final int PAINT_FLAGS = Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG;
 
-    private static final float OPTIMIZATION_FACTOR = 2f;
-
     private final ChartAnimator animator;
 
     final Matrix matrix = new Matrix();
-    private final Path path = new Path();
+
+    private final Paint pathPaint = new Paint(PAINT_FLAGS);
     private float[] pathsPoints;
     private float[] pathsPointsTransformed;
 
-    private final Paint pathPaint = new Paint(PAINT_FLAGS);
     private final Paint pointPaint = new Paint(PAINT_FLAGS);
     private final float pointRadius;
-
-    private final Paint pathPaintOptimized = new Paint(PAINT_FLAGS);
-    private final Matrix matrixOptimized = new Matrix();
-    private boolean optimizeDrawing;
 
     private final Range pendingRange = new Range();
     private boolean pendingAnimateX;
@@ -324,9 +317,6 @@ abstract class BaseChartView extends View {
             result |= !state.isFinished();
         }
 
-        // We'll optimizing path drawing if animating, see onDraw method.
-        optimizeDrawing = result;
-
         return result;
     }
 
@@ -383,37 +373,14 @@ abstract class BaseChartView extends View {
             return;
         }
 
-        canvas.save();
-
-        matrixOptimized.set(matrix);
-        pathPaintOptimized.set(pathPaint);
-
-        // Optimizing paths drawing by drawing them with less precision.
-        // It is especially important when animating Y range since path drawing may become slow if
-        // path size is too big (bigger than canvas) which is usually the case during Y animation.
-        if (optimizeDrawing) {
-            final float reversedFactor = 1f / OPTIMIZATION_FACTOR;
-            // Scaling down paths
-            matrixOptimized.postScale(reversedFactor, reversedFactor);
-            // Scaling down stroke width
-            pathPaintOptimized.setStrokeWidth(reversedFactor * pathPaintOptimized.getStrokeWidth());
-            // Scaling up the canvas instead
-            canvas.scale(OPTIMIZATION_FACTOR, OPTIMIZATION_FACTOR);
-        }
-
-        // Drawing chart lines
         drawChartLines(canvas);
-
-        // Drawing selected points. We need to do it on top of already drawn lines.
         drawSelectedPoints(canvas);
-
-        canvas.restore();
     }
 
 
     private void drawChartLines(Canvas canvas) {
-        int from = (int) Math.floor(xRangeExt.from);
-        int to = (int) Math.ceil(xRangeExt.to);
+        final int from = (int) Math.floor(xRangeExt.from);
+        final int to = (int) Math.ceil(xRangeExt.to);
 
         for (int l = 0, size = chart.lines.size(); l < size; l++) {
             final float state = linesStates[l].get();
@@ -422,43 +389,29 @@ abstract class BaseChartView extends View {
                 continue; // Ignoring invisible lines
             }
 
-            pathPaintOptimized.setColor(line.color);
-            pathPaintOptimized.setAlpha(toAlpha(state));
+            pathPaint.setColor(line.color);
+            pathPaint.setAlpha(toAlpha(state));
 
-            drawAsPath(canvas, line.y, from, to);
-            //drawAsLines(canvas, line.y, from, to);
+            drawAsLines(canvas, line.y, from, to);
         }
-    }
-
-    private void drawAsPath(Canvas canvas, int[] values, int from, int to) {
-        path.reset();
-        for (int i = from; i <= to; i++) {
-            if (i == from) {
-                path.moveTo(i, values[i]);
-            } else {
-                path.lineTo(i, values[i]);
-            }
-        }
-
-        path.transform(matrixOptimized);
-
-        canvas.drawPath(path, pathPaintOptimized);
     }
 
     private void drawAsLines(Canvas canvas, int[] values, int from, int to) {
+        final float[] points = pathsPoints;
+
         for (int i = from; i < to; i++) {
-            pathsPoints[4 * i] = i;
-            pathsPoints[4 * i + 1] = values[i];
-            pathsPoints[4 * i + 2] = i + 1;
-            pathsPoints[4 * i + 3] = values[i + 1];
+            points[4 * i] = i;
+            points[4 * i + 1] = values[i];
+            points[4 * i + 2] = i + 1;
+            points[4 * i + 3] = values[i + 1];
         }
 
         final int offset = 4 * from;
         final int count = 2 * (to - from);
 
-        matrixOptimized.mapPoints(pathsPointsTransformed, offset, pathsPoints, offset, count);
+        matrix.mapPoints(pathsPointsTransformed, offset, points, offset, count);
 
-        canvas.drawLines(pathsPointsTransformed, offset, 2 * count, pathPaintOptimized);
+        canvas.drawLines(pathsPointsTransformed, offset, 2 * count, pathPaint);
     }
 
 
@@ -467,9 +420,6 @@ abstract class BaseChartView extends View {
             return;
         }
 
-        // Scaling down point radius if optimization is enabled
-        final float radius = optimizeDrawing ? pointRadius / OPTIMIZATION_FACTOR : pointRadius;
-
         for (int l = 0, size = chart.lines.size(); l < size; l++) {
             final float state = linesStates[l].get();
             final Line line = chart.lines.get(l);
@@ -477,16 +427,16 @@ abstract class BaseChartView extends View {
                 continue; // Ignoring invisible lines
             }
 
-            pathPaintOptimized.setColor(line.color);
-            pathPaintOptimized.setAlpha(toAlpha(state));
+            pathPaint.setColor(line.color);
+            pathPaint.setAlpha(toAlpha(state));
             // Point's alpha should change much slower than main path
             pointPaint.setAlpha(toAlpha((float) Math.sqrt(Math.sqrt(state))));
 
-            float posX = ChartMath.mapX(matrixOptimized, selectedPointX);
-            float posY = ChartMath.mapY(matrixOptimized, line.y[selectedPointX]);
+            float posX = ChartMath.mapX(matrix, selectedPointX);
+            float posY = ChartMath.mapY(matrix, line.y[selectedPointX]);
 
-            canvas.drawCircle(posX, posY, radius, pointPaint);
-            canvas.drawCircle(posX, posY, radius, pathPaintOptimized);
+            canvas.drawCircle(posX, posY, pointRadius, pointPaint);
+            canvas.drawCircle(posX, posY, pointRadius, pathPaint);
         }
     }
 
