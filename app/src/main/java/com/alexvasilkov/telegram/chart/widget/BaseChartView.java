@@ -14,6 +14,7 @@ import android.view.View;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.domain.Chart.Line;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartAnimator;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
@@ -26,13 +27,15 @@ abstract class BaseChartView extends View {
     private static final float OPTIMIZATION_FACTOR = 2f;
 
     private final ChartAnimator animator;
+
+    final Matrix matrix = new Matrix();
     private final Path path = new Path();
+    private float[] pathsPoints;
+    private float[] pathsPointsTransformed;
 
     private final Paint pathPaint = new Paint(PAINT_FLAGS);
     private final Paint pointPaint = new Paint(PAINT_FLAGS);
     private final float pointRadius;
-
-    final Matrix matrix = new Matrix();
 
     private final Paint pathPaintOptimized = new Paint(PAINT_FLAGS);
     private final Matrix matrixOptimized = new Matrix();
@@ -128,6 +131,7 @@ abstract class BaseChartView extends View {
      * Sets a chart to be drawn.
      */
     public void setChart(Chart newChart) {
+        // Resetting old state
         xRange.reset();
         xRangeEnd.reset();
         xRangeState.reset();
@@ -138,14 +142,21 @@ abstract class BaseChartView extends View {
 
         selectedPointX = -1;
 
+        // Setting new chart
         chart = newChart;
-        chartRange.set(0, newChart.x.length - 1);
 
-        final int linesCount = chart.lines.size();
-        linesStates = new AnimatedState[linesCount];
-        linesVisibility = new boolean[linesCount];
+        final int lines = newChart.lines.size();
+        final int points = newChart.x.length;
 
-        for (int i = 0, size = linesStates.length; i < size; i++) {
+        chartRange.set(0, points - 1);
+
+        pathsPoints = new float[4 * (points - 1)];
+        pathsPointsTransformed = new float[4 * (points - 1)];
+
+        linesStates = new AnimatedState[lines];
+        linesVisibility = new boolean[lines];
+
+        for (int i = 0; i < lines; i++) {
             linesStates[i] = new AnimatedState();
             linesStates[i].setTo(1f); // All lines are visible by default
         }
@@ -241,7 +252,7 @@ abstract class BaseChartView extends View {
                 continue; // Ignoring invisible lines
             }
 
-            final Chart.Line line = chart.lines.get(l);
+            final Line line = chart.lines.get(l);
             for (int i = fromXInt; i <= toXInt; i++) {
                 minY = minY > line.y[i] ? line.y[i] : minY;
                 maxY = maxY < line.y[i] ? line.y[i] : maxY;
@@ -406,7 +417,7 @@ abstract class BaseChartView extends View {
 
         for (int l = 0, size = chart.lines.size(); l < size; l++) {
             final float state = linesStates[l].get();
-            final Chart.Line line = chart.lines.get(l);
+            final Line line = chart.lines.get(l);
             if (state == 0f) {
                 continue; // Ignoring invisible lines
             }
@@ -414,22 +425,42 @@ abstract class BaseChartView extends View {
             pathPaintOptimized.setColor(line.color);
             pathPaintOptimized.setAlpha(toAlpha(state));
 
-            setPath(path, line.y, from, to);
-            path.transform(matrixOptimized);
-            canvas.drawPath(path, pathPaintOptimized);
+            drawAsPath(canvas, line.y, from, to);
+            //drawAsLines(canvas, line.y, from, to);
         }
     }
 
-    private static void setPath(Path path, int[] y, int from, int to) {
+    private void drawAsPath(Canvas canvas, int[] values, int from, int to) {
         path.reset();
         for (int i = from; i <= to; i++) {
             if (i == from) {
-                path.moveTo(i, y[i]);
+                path.moveTo(i, values[i]);
             } else {
-                path.lineTo(i, y[i]);
+                path.lineTo(i, values[i]);
             }
         }
+
+        path.transform(matrixOptimized);
+
+        canvas.drawPath(path, pathPaintOptimized);
     }
+
+    private void drawAsLines(Canvas canvas, int[] values, int from, int to) {
+        for (int i = from; i < to; i++) {
+            pathsPoints[4 * i] = i;
+            pathsPoints[4 * i + 1] = values[i];
+            pathsPoints[4 * i + 2] = i + 1;
+            pathsPoints[4 * i + 3] = values[i + 1];
+        }
+
+        final int offset = 4 * from;
+        final int count = 2 * (to - from);
+
+        matrixOptimized.mapPoints(pathsPointsTransformed, offset, pathsPoints, offset, count);
+
+        canvas.drawLines(pathsPointsTransformed, offset, 2 * count, pathPaintOptimized);
+    }
+
 
     private void drawSelectedPoints(Canvas canvas) {
         if (selectedPointX == -1) {
@@ -441,7 +472,7 @@ abstract class BaseChartView extends View {
 
         for (int l = 0, size = chart.lines.size(); l < size; l++) {
             final float state = linesStates[l].get();
-            final Chart.Line line = chart.lines.get(l);
+            final Line line = chart.lines.get(l);
             if (state == 0f) {
                 continue; // Ignoring invisible lines
             }
