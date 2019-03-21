@@ -1,10 +1,12 @@
 package com.alexvasilkov.telegram.chart.app.chart;
 
 
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
@@ -35,11 +37,15 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
 
         for (int i = 0, size = chart.lines.size(); i < size; i++) {
             final TextView text = holder.items[i];
+            final ObjectAnimator anim = holder.itemsAnim[i];
             final Chart.Line line = chart.lines.get(i);
 
             text.setTextColor(line.color);
             text.setText(line.y[index] + "\n" + line.name);
-            text.animate().alpha(visibilities[i] ? 1f : 0.33f);
+
+            // Animating hidden line's value
+            anim.setFloatValues(visibilities[i] ? 1f : 0.33f);
+            anim.start();
 
             // Setting max width of the text view to prevent it from constantly changing its size
             setMinWidth(text, findMax(line.y));
@@ -74,6 +80,7 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
 
         final TextView title = itemView.findViewById(R.id.chart_popup_title);
         final TextView[] items;
+        final ObjectAnimator[] itemsAnim;
 
         @SuppressLint("InflateParams")
         ViewHolder(LayoutInflater inflater, int size) {
@@ -81,11 +88,13 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
 
             final ViewGroup group = itemView.findViewById(R.id.chart_popup_items);
             items = new TextView[size];
+            itemsAnim = new ObjectAnimator[size];
 
             for (int i = 0; i < size; i++) {
                 final TextView item =
                         (TextView) inflater.inflate(R.layout.chart_popup_item, group, false);
                 items[i] = item;
+                itemsAnim[i] = ObjectAnimator.ofFloat(item, View.ALPHA, 1f);
                 group.addView(item);
             }
         }

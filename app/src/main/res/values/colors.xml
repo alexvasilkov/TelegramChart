@@ -20,6 +20,6 @@
     <color name="finder_frame">#444F89B6</color>
 
     <color name="popup_stroke">#D9D9D9</color>
-    <color name="popup_background">#DDFFFFFF</color>
+    <color name="popup_background">#D4FFFFFF</color>
 
 </resources>
