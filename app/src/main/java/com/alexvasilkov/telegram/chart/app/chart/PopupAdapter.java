@@ -31,7 +31,7 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
     @SuppressLint("SetTextI18n")
     @Override
     protected void bindView(
-            ViewHolder holder, Chart chart, boolean[] visibilities, int index) {
+            ViewHolder holder, Chart chart, boolean[] visibilities, int index, boolean animate) {
 
         holder.title.setText(formatPopupDate(chart.x[index]));
 
@@ -43,9 +43,15 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
             text.setTextColor(line.color);
             text.setText(line.y[index] + "\n" + line.name);
 
-            // Animating hidden line's value
-            anim.setFloatValues(visibilities[i] ? 1f : 0.33f);
-            anim.start();
+            final float targetAlpha = visibilities[i] ? 1f : 0.33f;
+            if (animate) {
+                // Animating hidden line's value
+                anim.setFloatValues(targetAlpha);
+                anim.start();
+            } else {
+                anim.cancel();
+                text.setAlpha(targetAlpha);
+            }
 
             // Setting max width of the text view to prevent it from constantly changing its size
             setMinWidth(text, findMax(line.y));

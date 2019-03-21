@@ -158,7 +158,7 @@ public class ChartView extends BaseChartView {
         super.setLine(pos, visible, animate);
 
         // We need to update popup since line visibility is changed
-        updateSelectionPopupView();
+        updateSelectionPopupView(true);
     }
 
     public void setSelectionPopupAdapter(PopupAdapter<?> adapter) {
@@ -438,7 +438,7 @@ public class ChartView extends BaseChartView {
         selectedChartX = Math.round(chartRange.fit(chartX));
         setSelectedPointX(selectedChartX);
 
-        updateSelectionPopupView();
+        updateSelectionPopupView(false);
     }
 
     private void clearSelectedPosX() {
@@ -522,11 +522,11 @@ public class ChartView extends BaseChartView {
         }
     }
 
-    private void updateSelectionPopupView() {
+    private void updateSelectionPopupView(boolean animate) {
         if (selectionPopupAdapter != null && selectedChartX != -1) {
             final Rect pos = getChartPosition();
-            selectionPopupAdapter.bind(
-                    chart, getLinesVisibility(), selectedChartX, pos.width(), pos.height());
+            selectionPopupAdapter.bind(chart, getLinesVisibility(), selectedChartX,
+                    pos.width(), pos.height(), animate);
         }
     }
 
@@ -707,15 +707,15 @@ public class ChartView extends BaseChartView {
         protected abstract T createView(int linesCount);
 
         protected abstract void bindView(
-                T holder, Chart chart, boolean[] visibilities, int index);
+                T holder, Chart chart, boolean[] visibilities, int index, boolean animate);
 
         @SuppressWarnings("ConstantConditions")
-        private void bind(
-                Chart chart, boolean[] visibilities, int index, int maxWidth, int maxHeight) {
+        private void bind(Chart chart, boolean[] visibilities, int index,
+                int maxWidth, int maxHeight, boolean animate) {
             if (holder == null) {
                 holder = createView(chart.lines.size());
             }
-            bindView(holder, chart, visibilities, index);
+            bindView(holder, chart, visibilities, index, animate);
 
             // Measure and lay out the view
             final View view = holder.itemView;
