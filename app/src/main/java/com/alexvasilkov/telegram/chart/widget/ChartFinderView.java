@@ -70,6 +70,7 @@ public class ChartFinderView extends BaseChartView {
         gestureDetector.setIsLongpressEnabled(false);
 
         setInsets(0, (int) dpToPx(4f), 0, (int) dpToPx(4f));
+        useSimplifiedDrawing(true); // Optimizing preview rendering
     }
 
     public void attachTo(ChartView chartView) {
@@ -128,7 +129,11 @@ public class ChartFinderView extends BaseChartView {
                 selectedHandle = HANDLE_BOTH;
             }
 
-            firstScrollEvent = selectedHandle != null;
+            if (selectedHandle != null) {
+                firstScrollEvent = true;
+                // Optimizing chart drawing while being dragged
+                chartView.useSimplifiedDrawing(true);
+            }
         }
 
         return selectedHandle != null;
@@ -136,6 +141,7 @@ public class ChartFinderView extends BaseChartView {
 
     private void onUpOrCancelEvent() {
         selectedHandle = null;
+        chartView.useSimplifiedDrawing(false);
     }
 
     private boolean onScrollEvent(float distanceX) {

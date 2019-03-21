@@ -344,6 +344,10 @@ public class ChartView extends BaseChartView {
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (ev.getActionMasked() == MotionEvent.ACTION_CANCEL) {
             onCancelEvent();
+            onUpOrCancelEvent();
+        }
+        if (ev.getActionMasked() == MotionEvent.ACTION_UP) {
+            onUpOrCancelEvent();
         }
 
         return gestureDetector.onTouchEvent(ev);
@@ -360,6 +364,10 @@ public class ChartView extends BaseChartView {
         if (isSelectionTemporary && !selectionWasShown) {
             clearSelectedPosX();
         }
+    }
+
+    private void onUpOrCancelEvent() {
+        useSimplifiedDrawing(false);
     }
 
     private void onShowPressEvent(float posX) {
@@ -387,6 +395,9 @@ public class ChartView extends BaseChartView {
         } else {
             setSelectedPosX(selectedPosX - distanceX);
         }
+
+        // Optimizing chart drawing while being dragged
+        useSimplifiedDrawing(true);
 
         return true;
     }

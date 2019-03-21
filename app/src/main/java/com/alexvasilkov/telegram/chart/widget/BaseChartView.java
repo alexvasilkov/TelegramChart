@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -28,11 +29,15 @@ abstract class BaseChartView extends View {
     final Matrix matrix = new Matrix();
 
     private final Paint pathPaint = new Paint(PAINT_FLAGS);
+    private final Path path = new Path();
     private float[] pathsPoints;
     private float[] pathsPointsTransformed;
 
     private final Paint pointPaint = new Paint(PAINT_FLAGS);
     private final float pointRadius;
+
+    private boolean isAnimating;
+    private boolean simplifiedDrawing;
 
     private final Range pendingRange = new Range();
     private boolean pendingAnimateX;
@@ -195,6 +200,13 @@ abstract class BaseChartView extends View {
         return linesVisibility;
     }
 
+    void useSimplifiedDrawing(boolean simplified) {
+        if (simplifiedDrawing != simplified) {
+            simplifiedDrawing = simplified;
+            invalidate();
+        }
+    }
+
     void setSelectedPointX(int selectedX) {
         selectedPointX = selectedX;
         invalidate();
@@ -317,6 +329,9 @@ abstract class BaseChartView extends View {
             result |= !state.isFinished();
         }
 
+        // We'll optimizing path drawing if animating, see onDraw method.
+        isAnimating = result;
+
         return result;
     }
 
@@ -392,8 +407,27 @@ abstract class BaseChartView extends View {
             pathPaint.setColor(line.color);
             pathPaint.setAlpha(toAlpha(state));
 
-            drawAsLines(canvas, line.y, from, to);
+            if (isAnimating || simplifiedDrawing) {
+                drawAsLines(canvas, line.y, from, to);
+            } else {
+                drawAsPath(canvas, line.y, from, to);
+            }
         }
+    }
+
+    private void drawAsPath(Canvas canvas, int[] values, int from, int to) {
+        path.reset();
+        for (int i = from; i <= to; i++) {
+            if (i == from) {
+                path.moveTo(i, values[i]);
+            } else {
+                path.lineTo(i, values[i]);
+            }
+        }
+
+        path.transform(matrix);
+
+        canvas.drawPath(path, pathPaint);
     }
 
     private void drawAsLines(Canvas canvas, int[] values, int from, int to) {
