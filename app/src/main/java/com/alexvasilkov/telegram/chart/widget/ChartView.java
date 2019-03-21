@@ -95,7 +95,7 @@ public class ChartView extends BaseChartView {
 
         yLabelStrokePaint.set(yLabelPaint);
         yLabelStrokePaint.setStyle(Paint.Style.STROKE);
-        yLabelStrokePaint.setStrokeWidth(dpToPx(2f));
+        yLabelStrokePaint.setStrokeWidth(dpToPx(3f));
         yLabelStrokePaint.setColor(labelsStrokeColor);
 
         topInset = (int) (1.25f * labelsSize + yLabelPaddingBottom);
@@ -186,16 +186,36 @@ public class ChartView extends BaseChartView {
         final int chartHeight = getChartPosition().height();
         final float minToY = toY - (toY - fromY) * topInset / (chartHeight + topInset);
 
-        fromY = (int) Math.floor(fromY / yIntervals) * yIntervals;
-        toY = (int) Math.ceil(minToY / yIntervals) * yIntervals;
+        final float density = (minToY - fromY) / chartHeight;
+        final int roundFactor = (int) Math.ceil(density) * yIntervals;
 
-        // Setting up new Y guides if Y range is changed
-        if (yRangeEnd.from != fromY || yRangeEnd.to != toY) {
+        fromY = (int) Math.floor(fromY / roundFactor) * roundFactor;
+        toY = (int) Math.ceil(minToY / roundFactor) * roundFactor;
+
+        // Checking if Y range changes are big enough to switch Y guides
+        final float range = toY - fromY; // Y change range, never 0
+        final float fromChanges = (fromY - yRangeEnd.from) / range;
+        final float toChanges = (toY - yRangeEnd.to) / range;
+        final float fromThreshold = 0; // Can't tolerate 'from' value changes because of X labels
+        final float toThreshold = getPaddingTop() / (float) getHeight();
+        final boolean isSmallChange =
+                Math.abs(fromChanges) <= fromThreshold && Math.abs(toChanges) <= toThreshold;
+
+        // Setting up new Y guides only if Y range is significantly changed
+        if (isSmallChange) {
+            fromY = yRangeEnd.from;
+            toY = yRangeEnd.to;
+        }
+
+        super.onRangeSet(fromX, toX, fromY, toY, animateX, animateY);
+
+        // Preparing Y guides once range is set
+        if (!isSmallChange) {
             // We wont animate the very first guides
-            boolean animate = yGuides != null;
+            final boolean animate = yGuides != null;
 
+            // Animating out old Y guides
             if (yGuides != null) {
-                // Animating out old Y guides
                 yGuidesOld.add(yGuides);
                 yGuides.state.animateTo(0f);
             }
@@ -216,8 +236,15 @@ public class ChartView extends BaseChartView {
                 yGuides.state.setTo(1f); // Setting initial visible state
             }
         }
+    }
 
-        super.onRangeSet(fromX, toX, fromY, toY, animateX, animateY);
+    @SuppressWarnings("unused")
+    public int getMinY() {
+        return (int) yRangeEnd.from;
+    }
+
+    public int getMaxY() {
+        return (int) yRangeEnd.to;
     }
 
     private void prepareXLabels() {

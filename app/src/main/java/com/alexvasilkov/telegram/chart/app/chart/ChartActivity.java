@@ -16,6 +16,7 @@ import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
 import java.util.List;
+import java.util.Locale;
 
 
 public class ChartActivity extends BaseActivity {
@@ -49,7 +50,8 @@ public class ChartActivity extends BaseActivity {
         final CheckBox dynamicRange = findViewById(R.id.chart_dynamic_range);
 
         chartView.setXLabelFormatter(this::formatDate);
-        chartView.setYLabelFormatter(String::valueOf);
+        chartView.setYLabelFormatter(
+                (long value) -> formatValue((int) value, chartView.getMaxY()));
         chartView.setSelectionPopupAdapter(new PopupAdapter(this));
 
         chartFinderView.attachTo(chartView);
@@ -99,6 +101,20 @@ public class ChartActivity extends BaseActivity {
                 | DateUtils.FORMAT_ABBREV_MONTH;
 
         return DateUtils.formatDateTime(this, timestamp, flags);
+    }
+
+    private String formatValue(int value, int max) {
+        if (value == 0) {
+            return "0";
+        } else if (max >= 1_000_000) {
+            return String.format(Locale.US, "%.1fM", value / 1_000_000f);
+        } else if (max >= 10_000) {
+            return String.format(Locale.US, "%.0fK", value / 1_000f);
+        } else if (max >= 1_000) {
+            return String.format(Locale.US, "%.1fK", value / 1_000f);
+        } else {
+            return String.valueOf(value);
+        }
     }
 
 }
