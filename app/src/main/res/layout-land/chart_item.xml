@@ -13,7 +13,7 @@
             android:id="@+id/chart_title"
             style="@style/Chart.Title"
             android:layout_gravity="center_vertical|start"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
             android:textSize="14sp"
             tools:text="Followers" />
 
