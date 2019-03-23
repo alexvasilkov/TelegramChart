@@ -11,6 +11,71 @@
         <item name="android:textColor">?android:textColorPrimary</item>
 
         <item name="android:navigationBarColor">@color/primaryDark</item>
+
+        <item name="android:actionBarStyle">@style/ActionBar</item>
     </style>
+
+    <style name="ActionBar" parent="android:Widget.Material.ActionBar.Solid">
+        <item name="android:displayOptions">none</item>
+    </style>
+
+
+    <style name="Chart" />
+
+    <style name="Chart.Layout">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginBottom">24dp</item>
+        <item name="android:background">@color/background</item>
+        <item name="android:elevation">2dp</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="Chart.Title">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginLeft">16dp</item>
+        <item name="android:layout_marginTop">20dp</item>
+        <item name="android:layout_marginRight">16dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/text_highlighted</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="Chart.View">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">320dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+
+        <item name="chart_guidesColor">@color/chart_guides</item>
+        <item name="chart_guidesNumber">6</item>
+        <item name="chart_guidesWidth">1dp</item>
+        <item name="chart_labelsColor">@color/chart_labels</item>
+        <item name="chart_labelsDotColor">@color/chart_labels_dot</item>
+        <item name="chart_labelsStrokeColor">@color/background</item>
+        <item name="chart_labelsTextSize">12sp</item>
+        <item name="chart_lineWidth">2dp</item>
+        <item name="chart_pointColor">@color/background</item>
+        <item name="chart_pointRadius">4dp</item>
+    </style>
+
+    <style name="Chart.Finder">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingBottom">4dp</item>
+
+        <item name="chart_foregroundColor">@color/finder_foreground</item>
+        <item name="chart_frameColor">@color/finder_frame</item>
+        <item name="chart_lineWidth">1dp</item>
+        <item name="chart_useDynamicRange">false</item>
+    </style>
+
 
 </resources>

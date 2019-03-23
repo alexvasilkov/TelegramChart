@@ -2,18 +2,15 @@
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/charts_scroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".app.list.ChartsListActivity">
+    tools:context=".app.ChartsActivity">
 
     <LinearLayout
         android:id="@+id/charts_list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/background"
-        android:divider="@drawable/divider_horizontal"
-        android:elevation="2dp"
-        android:orientation="vertical"
-        android:showDividers="middle" />
+        android:orientation="vertical" />
 
 </ScrollView>

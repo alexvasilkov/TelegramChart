@@ -15,19 +15,24 @@ import java.util.List;
 
 public class ChartsLoader {
 
-    private static final String TAG = ChartsLoader.class.getSimpleName();
     private static final String CHARTS_FILE = "chart_data.json";
 
+    private static List<Chart> cache;
+
     public static void loadCharts(
-            Context appContext,
-            Listener<List<Chart>> listener,
-            Listener<Throwable> error
+            Context context, Listener<List<Chart>> listener, Listener<Throwable> error
     ) {
-        // A simple handling for fast background tasks
+        if (cache != null) {
+            listener.onResult(cache);
+            return;
+        }
+
+        // A simple handling for fast background tasks.
+        // Assuming it will run quick enough to avoid memory leaks.
         new Thread(() -> {
             try {
-                final List<Chart> charts = loadChartsInBackground(appContext);
-                new Handler(Looper.getMainLooper()).post(() -> listener.onResult(charts));
+                cache = loadChartsInBackground(context);
+                new Handler(Looper.getMainLooper()).post(() -> listener.onResult(cache));
             } catch (Throwable ex) {
                 new Handler(Looper.getMainLooper()).post(() -> error.onResult(ex));
             }

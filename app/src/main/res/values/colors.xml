@@ -11,6 +11,7 @@
 
     <color name="text_primary">#222222</color>
     <color name="text_secondary">#99222222</color>
+    <color name="text_highlighted">#3896d4</color>
 
     <color name="chart_guides">@color/divider</color>
     <color name="chart_labels">#96A2AA</color>

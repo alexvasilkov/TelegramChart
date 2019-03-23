@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Chart.Layout">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp">
+
+        <TextView
+            android:id="@+id/chart_title"
+            style="@style/Chart.Title"
+            android:layout_gravity="center_vertical|start"
+            android:layout_marginTop="8dp"
+            android:textSize="14sp"
+            tools:text="Followers" />
+
+        <LinearLayout
+            android:id="@+id/chart_lines"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|end"
+            android:clipToPadding="false"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="6dp"
+            tools:ignore="RtlHardcoded,RtlSymmetry" />
+
+    </FrameLayout>
+
+    <com.alexvasilkov.telegram.chart.widget.ChartView
+        android:id="@+id/chart_view"
+        style="@style/Chart.View"
+        android:layout_height="200dp"
+        android:paddingTop="8dp"
+        app:chart_guidesNumber="5" />
+
+    <com.alexvasilkov.telegram.chart.widget.ChartFinderView
+        android:id="@+id/chart_finder_view"
+        style="@style/Chart.Finder"
+        android:layout_marginBottom="16dp" />
+
+</LinearLayout>

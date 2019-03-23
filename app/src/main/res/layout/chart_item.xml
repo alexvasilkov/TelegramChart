@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Chart.Layout">
+
+    <TextView
+        android:id="@+id/chart_title"
+        style="@style/Chart.Title"
+        tools:text="Followers" />
+
+    <com.alexvasilkov.telegram.chart.widget.ChartView
+        android:id="@+id/chart_view"
+        style="@style/Chart.View" />
+
+    <com.alexvasilkov.telegram.chart.widget.ChartFinderView
+        android:id="@+id/chart_finder_view"
+        style="@style/Chart.Finder" />
+
+    <LinearLayout
+        android:id="@+id/chart_lines"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:clipToPadding="false"
+        android:divider="@drawable/divider_horizontal"
+        android:orientation="vertical"
+        android:paddingLeft="16dp"
+        android:showDividers="middle"
+        tools:ignore="RtlHardcoded,RtlSymmetry" />
+
+</LinearLayout>

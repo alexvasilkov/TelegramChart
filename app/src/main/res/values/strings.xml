@@ -4,9 +4,7 @@
 
     <string name="menu_night_mode">Toggle night mode</string>
 
-    <string name="charts_list_title">Charts</string>
+    <string name="charts_title">Charts</string>
     <string name="chart_name">Chart #%d</string>
-
-    <string name="dynamic_range">Use dynamic range</string>
 
 </resources>

@@ -11,36 +11,17 @@ import android.view.MenuItem;
 
 import com.alexvasilkov.telegram.chart.R;
 
-public abstract class BaseActivity extends Activity {
+abstract class BaseActivity extends Activity {
 
     private Preferences prefs;
-    private boolean isInNightMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // Applying current night mode
         prefs = new Preferences(this);
-        isInNightMode = prefs.isInNightMode();
-        setNightMode(isInNightMode);
+        setNightMode(prefs.isInNightMode());
 
         super.onCreate(savedInstanceState);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        // Have to restart activity if night mode is changed from another place
-        if (isInNightMode != prefs.isInNightMode()) {
-            recreate();
-        }
-    }
-
-    protected void showBackButton() {
-        ActionBar actionBar = getActionBar();
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true);
-        }
     }
 
     @Override
@@ -52,9 +33,7 @@ public abstract class BaseActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
-        } else if (item.getItemId() == R.id.menu_night_mode) {
+        if (item.getItemId() == R.id.menu_night_mode) {
             boolean isInNightMode = !prefs.isInNightMode();
             prefs.setInNightMode(isInNightMode);
 
@@ -73,9 +52,22 @@ public abstract class BaseActivity extends Activity {
                 : Configuration.UI_MODE_NIGHT_NO;
 
         final Resources res = getResources();
-        final Configuration config = new Configuration(res.getConfiguration());
-        config.uiMode = newNightMode | (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK);
-        res.updateConfiguration(config, res.getDisplayMetrics());
+        final int uiMode = res.getConfiguration().uiMode;
+        final int newUiMode = newNightMode | (uiMode & ~Configuration.UI_MODE_NIGHT_MASK);
+
+        if (uiMode != newUiMode) {
+            final Configuration config = new Configuration(res.getConfiguration());
+            config.uiMode = newUiMode;
+            res.updateConfiguration(config, res.getDisplayMetrics());
+        }
     }
 
+    protected ActionBar requireActionBar() {
+        ActionBar bar = super.getActionBar();
+        if (bar == null) {
+            throw new NullPointerException();
+        } else {
+            return super.getActionBar();
+        }
+    }
 }

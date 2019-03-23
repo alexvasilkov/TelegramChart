@@ -1,16 +1,16 @@
-package com.alexvasilkov.telegram.chart.app.chart;
+package com.alexvasilkov.telegram.chart.app;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.ColorStateList;
-import android.os.Bundle;
 import android.text.format.DateUtils;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.TextView;
 
 import com.alexvasilkov.telegram.chart.R;
-import com.alexvasilkov.telegram.chart.app.BaseActivity;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
@@ -18,53 +18,33 @@ import com.alexvasilkov.telegram.chart.widget.ChartView;
 import java.util.List;
 import java.util.Locale;
 
+class ChartsAdapter {
 
-public class ChartActivity extends BaseActivity {
+    View createView(ViewGroup parent, Chart chart, int pos) {
+        final Context context = parent.getContext();
+        final View layout = LayoutInflater.from(context)
+                .inflate(R.layout.chart_item, parent, false);
 
-    private static final String PARAM_CHART = "chart";
-    private static final String PARAM_TITLE = "title";
+        final TextView title = layout.findViewById(R.id.chart_title);
+        final ChartView chartView = layout.findViewById(R.id.chart_view);
+        final ChartFinderView chartFinderView = layout.findViewById(R.id.chart_finder_view);
+        final ViewGroup linesGroup = layout.findViewById(R.id.chart_lines);
 
-    public static Intent createIntent(Context context, Chart chart, String title) {
-        Intent intent = new Intent(context, ChartActivity.class);
-        intent.putExtra(PARAM_CHART, chart);
-        intent.putExtra(PARAM_TITLE, title);
-        return intent;
-    }
+        title.setText(context.getString(R.string.chart_name, pos));
 
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        final Intent intent = getIntent();
-        final Chart chart = intent.getParcelableExtra(PARAM_CHART);
-        final String title = intent.getStringExtra(PARAM_TITLE);
-
-        setContentView(R.layout.chart_activity);
-        setTitle(title);
-        showBackButton();
-
-        final ChartView chartView = findViewById(R.id.chart_view);
-        final ChartFinderView chartFinderView = findViewById(R.id.chart_finder_view);
-        final ViewGroup linesGroup = findViewById(R.id.chart_lines);
-        final CheckBox dynamicRange = findViewById(R.id.chart_dynamic_range);
-
-        chartView.setXLabelFormatter(this::formatDate);
+        chartView.setXLabelFormatter((long time) -> formatDate(context, time));
         chartView.setYLabelFormatter(
                 (long value) -> formatValue((int) value, chartView.getMaxY()));
-        chartView.setSelectionPopupAdapter(new PopupAdapter(this));
+        chartView.setSelectionPopupAdapter(new PopupAdapter(context));
 
         chartFinderView.attachTo(chartView);
         chartFinderView.setChart(chart);
         showLines(chart.lines, linesGroup, chartFinderView);
 
-        dynamicRange.setOnCheckedChangeListener((CompoundButton button, boolean isChecked) -> {
-            chartFinderView.setUseDynamicRange(isChecked);
-            checkAll(linesGroup);
-        });
+        return layout;
     }
 
-    private void showLines(
+    private static void showLines(
             List<Chart.Line> lines, ViewGroup linesGroup, ChartFinderView chartFinderView) {
         linesGroup.removeAllViews();
 
@@ -76,7 +56,7 @@ public class ChartActivity extends BaseActivity {
             final Chart.Line line = lines.get(i);
             final int pos = i;
 
-            CheckBox check = (CheckBox) getLayoutInflater()
+            final CheckBox check = (CheckBox) LayoutInflater.from(linesGroup.getContext())
                     .inflate(R.layout.chart_line_item, linesGroup, false);
 
             check.setButtonTintList(ColorStateList.valueOf(line.color));
@@ -89,21 +69,15 @@ public class ChartActivity extends BaseActivity {
         }
     }
 
-    private void checkAll(ViewGroup linesGroup) {
-        for (int i = 0, size = linesGroup.getChildCount(); i < size; i++) {
-            ((CheckBox) linesGroup.getChildAt(i)).setChecked(true);
-        }
-    }
-
-    private String formatDate(long timestamp) {
+    private static String formatDate(Context context, long timestamp) {
         int flags = DateUtils.FORMAT_SHOW_DATE
                 | DateUtils.FORMAT_NO_YEAR
                 | DateUtils.FORMAT_ABBREV_MONTH;
 
-        return DateUtils.formatDateTime(this, timestamp, flags);
+        return DateUtils.formatDateTime(context, timestamp, flags);
     }
 
-    private String formatValue(int value, int max) {
+    private static String formatValue(int value, int max) {
         if (value == 0) {
             return "0";
         } else if (max >= 1_000_000) {

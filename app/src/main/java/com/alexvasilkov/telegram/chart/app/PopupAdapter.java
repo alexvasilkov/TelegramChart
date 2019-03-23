@@ -1,4 +1,4 @@
-package com.alexvasilkov.telegram.chart.app.chart;
+package com.alexvasilkov.telegram.chart.app;
 
 
 import android.animation.ObjectAnimator;
@@ -15,6 +15,8 @@ import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
 class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
+
+    private static final float MIN_VALUE_ALPHA = 0.33f;
 
     private final Context context;
 
@@ -43,7 +45,7 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
             text.setTextColor(line.color);
             text.setText(line.y[index] + "\n" + line.name);
 
-            final float targetAlpha = visibilities[i] ? 1f : 0.33f;
+            final float targetAlpha = visibilities[i] ? 1f : MIN_VALUE_ALPHA;
             if (animate) {
                 // Animating hidden line's value
                 anim.setFloatValues(targetAlpha);
