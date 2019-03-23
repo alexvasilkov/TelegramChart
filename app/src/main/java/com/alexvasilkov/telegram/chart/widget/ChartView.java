@@ -621,7 +621,7 @@ public class ChartView extends BaseChartView {
             }
 
             // Ignoring labels from deeper levels, to avoid labels stacking
-            if (label.level < xLabelsLevel / 2) {
+            if (label.level < 0.5f * xLabelsLevel) {
                 continue;
             }
 
@@ -655,17 +655,23 @@ public class ChartView extends BaseChartView {
         final float labelPosY = getHeight() - getPaddingBottom();
 
         // Shifting label's X pos according to its position on screen to fit internal width
-        final float labelShift = Math.max(0f, Math.min((labelPosX - left) / (right - left) , 1f));
+        final float labelShift = Math.max(0f, Math.min((labelPosX - left) / (right - left), 1f));
         final float labelPosXShifted = labelPosX - label.width * labelShift;
 
-        // Calculating alpha so that labels outside of chart are gradually disappearing
-        float state = 1f;
+        // Calculating alpha so that labels outside of chart area are gradually disappearing
+        float edgeState = 1f;
         if (labelPosX < left) {
-            state = (labelPosX + label.width) / (left + label.width);
+            edgeState = (labelPosX + label.width) / (left + label.width);
         } else if (labelPosX > right) {
-            state = (getWidth() + label.width - labelPosX) / (getWidth() + label.width - right);
+            edgeState = (getWidth() + label.width - labelPosX) / (getWidth() + label.width - right);
         }
-        final float alpha = label.state.get() * Math.max(0f, state);
+
+        // Calculating alpha so that disappearing labels are not stacking
+        final float stackState = label.level >= xLabelsLevel ? 1f : 2f - xLabelsLevel / label.level;
+
+        final float alpha = label.state.get()
+                * Math.max(0f, edgeState)
+                * Math.max(0f, Math.min(stackState * stackState, 1f));
 
         xLabelPaint.setAlpha(toAlpha(alpha));
         canvas.drawText(label.title, labelPosXShifted, labelPosY, xLabelPaint);
