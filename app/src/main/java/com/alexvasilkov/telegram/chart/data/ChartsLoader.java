@@ -10,7 +10,7 @@ import com.alexvasilkov.telegram.chart.domain.Chart;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.List;
 
 public class ChartsLoader {
@@ -46,7 +46,7 @@ public class ChartsLoader {
 
     @SuppressWarnings("SameParameterValue")
     private static String readAsset(AssetManager assets, String fileName) throws IOException {
-        try (Reader in = new InputStreamReader(assets.open(fileName), StandardCharsets.UTF_8)) {
+        try (Reader in = new InputStreamReader(assets.open(fileName), Charset.forName("UTF-8"))) {
             final char[] buffer = new char[4096];
             final StringBuilder out = new StringBuilder();
 

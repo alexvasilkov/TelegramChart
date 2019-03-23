@@ -1,6 +1,5 @@
 package com.alexvasilkov.telegram.chart.app;
 
-
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;

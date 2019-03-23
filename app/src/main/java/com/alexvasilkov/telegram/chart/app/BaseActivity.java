@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,7 +28,8 @@ abstract class BaseActivity extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.night_mode, menu);
-        menu.findItem(R.id.menu_night_mode).getIcon().setTint(Color.WHITE);
+        menu.findItem(R.id.menu_night_mode).getIcon()
+                .setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
         return true;
     }
 

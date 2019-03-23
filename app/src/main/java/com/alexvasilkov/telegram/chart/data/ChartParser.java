@@ -1,6 +1,7 @@
 package com.alexvasilkov.telegram.chart.data;
 
 import android.graphics.Color;
+import android.os.Build;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
 
@@ -9,8 +10,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +42,9 @@ class ChartParser {
 
         String xName = getKeysForValue(types, "x").get(0);
         List<String> yNames = getKeysForValue(types, "line");
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT) {
+            Collections.sort(yNames); // Old versions does not preserve keys order
+        }
 
         long[] xValues = null;
         for (Object[] values : columns) {
@@ -73,11 +78,10 @@ class ChartParser {
 
 
     private static Map<String, String> toMap(JSONObject object) throws JSONException {
-        Map<String, String> map = new HashMap<>();
+        Map<String, String> map = new LinkedHashMap<>();
         for (Iterator<String> iterator = object.keys(); iterator.hasNext(); ) {
             String key = iterator.next();
             map.put(key, object.getString(key));
-
         }
         return map;
     }

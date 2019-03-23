@@ -6,7 +6,7 @@ android {
     defaultConfig {
         applicationId 'com.alexvasilkov.telegram.chart'
 
-        minSdkVersion 21
+        minSdkVersion 16
         targetSdkVersion 28
 
         versionCode 1

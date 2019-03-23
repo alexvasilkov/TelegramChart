@@ -20,8 +20,4 @@ public class ChartMath {
         return tmpFloatPoint[1];
     }
 
-    public static float getScaleX(Matrix matrix) {
-        return mapX(matrix, 1f) - mapX(matrix, 0f);
-    }
-
 }

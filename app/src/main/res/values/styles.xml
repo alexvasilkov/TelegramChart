@@ -1,22 +1,28 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="AppTheme" parent="android:Theme.Material.Light.DarkActionBar">
-        <item name="android:colorPrimary">@color/primary</item>
-        <item name="android:colorPrimaryDark">@color/primaryDark</item>
-        <item name="android:colorAccent">@color/accent</item>
+    <style name="AppTheme" parent="android:Theme.DeviceDefault.Light.DarkActionBar">
+        <item name="android:colorPrimary" tools:targetApi="21">@color/primary</item>
+        <item name="android:colorPrimaryDark" tools:targetApi="21">@color/primaryDark</item>
+        <item name="android:colorAccent" tools:targetApi="21">@color/accent</item>
+
+        <item name="android:navigationBarColor" tools:targetApi="21">@color/primaryDark</item>
 
         <item name="android:windowBackground">@color/window_background</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
         <item name="android:textColor">?android:textColorPrimary</item>
 
-        <item name="android:navigationBarColor">@color/primaryDark</item>
-
         <item name="android:actionBarStyle">@style/ActionBar</item>
     </style>
 
-    <style name="ActionBar" parent="android:Widget.Material.ActionBar.Solid">
+    <style name="ActionBar" parent="android:Widget.DeviceDefault.ActionBar.Solid">
         <item name="android:displayOptions">none</item>
+        <item name="android:background">@color/primary</item>
+        <item name="android:titleTextStyle">@style/ActionBar.Title</item>
+    </style>
+
+    <style name="ActionBar.Title" parent="android:TextAppearance.DeviceDefault.Widget.ActionBar.Title">
+        <item name="android:textColor">@android:color/white</item>
     </style>
 
 
@@ -27,7 +33,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginBottom">24dp</item>
         <item name="android:background">@color/background</item>
-        <item name="android:elevation">2dp</item>
+        <item name="android:elevation" tools:targetApi="21">2dp</item>
         <item name="android:orientation">vertical</item>
     </style>
 

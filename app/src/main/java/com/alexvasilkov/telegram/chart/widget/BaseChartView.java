@@ -8,6 +8,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
@@ -226,7 +227,11 @@ abstract class BaseChartView extends View {
 
     boolean isReady() {
         final Rect position = getChartPosition();
-        return isAttachedToWindow() && chart != null && chartRange.size() > 1
+
+        boolean isAttached = Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT
+                || isAttachedToWindow();
+
+        return isAttached && chart != null && chartRange.size() > 1
                 && position.width() > 0 && position.height() > 0;
     }
 

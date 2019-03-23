@@ -2,6 +2,7 @@ package com.alexvasilkov.telegram.chart.app;
 
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.os.Build;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -60,7 +61,9 @@ class ChartsAdapter {
             final CheckBox check = (CheckBox) LayoutInflater.from(linesGroup.getContext())
                     .inflate(R.layout.chart_line_item, linesGroup, false);
 
-            check.setButtonTintList(ColorStateList.valueOf(line.color));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                check.setButtonTintList(ColorStateList.valueOf(line.color));
+            }
             check.setText(line.name);
             check.setChecked(true);
             check.setOnCheckedChangeListener((CompoundButton button, boolean isChecked) ->
