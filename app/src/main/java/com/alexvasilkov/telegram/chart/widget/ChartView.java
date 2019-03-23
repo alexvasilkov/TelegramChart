@@ -30,7 +30,7 @@ public class ChartView extends BaseChartView {
     private final int yGuidesCount;
 
     private final float xLabelPadding = dpToPx(10f);
-    private final float yLabelPaddingBottom = dpToPx(5f);
+    private final float yLabelMarginBottom = dpToPx(5f);
 
     private YGuides yGuides;
     private final List<YGuides> yGuidesOld = new ArrayList<>();
@@ -99,7 +99,7 @@ public class ChartView extends BaseChartView {
         yLabelStrokePaint.setStrokeWidth(dpToPx(3f));
         yLabelStrokePaint.setColor(labelsStrokeColor);
 
-        topInset = (int) (1.25f * labelsSize + yLabelPaddingBottom);
+        topInset = (int) (labelsSize + yLabelMarginBottom);
         int bottomInset = (int) (1.33f * labelsSize);
         setInsets(0, topInset, 0, bottomInset);
 
@@ -189,8 +189,8 @@ public class ChartView extends BaseChartView {
 
         // Rounding guides to nearest 10^x value
         final float stepSize = (minToY - fromY) / yIntervals;
-        final float factor10 = stepSize <= 10f ? 0f : (float) Math.floor(Math.log10(stepSize)) - 1f;
-        final int roundFactor = (int) Math.pow(10, factor10) * yIntervals;
+        final int factor10 = (int) Math.floor(Math.log10(stepSize) - 0.75);
+        final int roundFactor = (int) Math.pow(10, Math.max(0f, factor10)) * yIntervals;
 
         fromY = (int) Math.floor(fromY / roundFactor) * roundFactor;
         toY = (int) Math.ceil(minToY / roundFactor) * roundFactor;
@@ -598,7 +598,7 @@ public class ChartView extends BaseChartView {
         yLabelPaint.setAlpha(toAlpha(guides.state.get()));
 
         for (int i = 0, size = guides.size(); i < size; i++) {
-            final float posY = guides.transformed[i] - yLabelPaddingBottom;
+            final float posY = guides.transformed[i] - yLabelMarginBottom;
             canvas.drawText(guides.titles[i], left, posY, yLabelStrokePaint);
             canvas.drawText(guides.titles[i], left, posY, yLabelPaint);
         }
