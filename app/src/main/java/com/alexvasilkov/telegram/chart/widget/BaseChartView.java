@@ -193,7 +193,7 @@ abstract class BaseChartView extends View {
         notifyReady();
     }
 
-    public boolean[] getLinesVisibility() {
+    boolean[] getLinesVisibility() {
         for (int i = 0, size = linesStates.length; i < size; i++) {
             linesVisibility[i] = linesStates[i].getTarget() == 1f;
         }
@@ -201,7 +201,7 @@ abstract class BaseChartView extends View {
     }
 
     boolean hasVisibleLines() {
-        for (boolean visible: getLinesVisibility()) {
+        for (boolean visible : getLinesVisibility()) {
             if (visible) {
                 return true;
             }
@@ -365,28 +365,36 @@ abstract class BaseChartView extends View {
         }
 
 
-        final Rect chartPosition = getChartPosition();
+        final Rect chartPos = getChartPosition();
 
-        final float scaleX = chartPosition.width() / (xRange.size() - 1f);
-        final float scaleY = chartPosition.height() / (yRange.size() - 1f);
+        final float scaleX = chartPos.width() / (xRange.size() - 1f);
+        final float scaleY = chartPos.height() / (yRange.size() - 1f);
 
         // We should start at the beginning of current X range and take padding into account
-        final float left = chartPosition.left - xRange.from * scaleX;
+        final float left = chartPos.left - xRange.from * scaleX;
         // Bottom of the chart should take padding into account
-        final float bottom = chartPosition.bottom + yRange.from * scaleY;
+        final float bottom = chartPos.bottom + yRange.from * scaleY;
 
         // Setting up transformation matrix
         matrix.setScale(scaleX, -scaleY); // Scale and flip along X axis
         matrix.postTranslate(left, bottom); // Translate to place
 
         // Adding extra range to continue drawing chart on sides
-        int extraLeft = (int) Math.ceil((chartPosition.left) / scaleX);
-        int extraRight = (int) Math.ceil((getWidth() - chartPosition.right) / scaleX);
+        int extraLeft = (int) Math.ceil(getExtraLeftSize() / scaleX);
+        int extraRight = (int) Math.ceil(getExtraRightSize() / scaleX);
 
         float fromX = chartRange.fit(xRange.from - extraLeft);
         float toX = chartRange.fit(xRange.to + extraRight);
 
         xRangeExt.set(fromX, toX);
+    }
+
+    float getExtraLeftSize() {
+        return getChartPosition().left;
+    }
+
+    float getExtraRightSize() {
+        return getWidth() - getChartPosition().right;
     }
 
     @Override
@@ -417,8 +425,10 @@ abstract class BaseChartView extends View {
             pathPaint.setAlpha(toAlpha(state));
 
             if (isAnimating || simplifiedDrawing) {
+                // Drawing a set of lines is much faster than drawing a path
                 drawAsLines(canvas, line.y, from, to);
             } else {
+                // But a path looks better since it smoothly joins the lines
                 drawAsPath(canvas, line.y, from, to);
             }
         }

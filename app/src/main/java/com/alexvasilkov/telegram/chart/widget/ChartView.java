@@ -36,6 +36,7 @@ public class ChartView extends BaseChartView {
     private final List<YGuides> yGuidesOld = new ArrayList<>();
 
     private List<XLabel> xLabels;
+    private float xLabelsMaxWidth;
     private float xMaxIntervals;
     int xIntervalsNumber;
     private float xLabelsLevel;
@@ -259,6 +260,7 @@ public class ChartView extends BaseChartView {
             widths[i] = measureXLabel(titles[i]);
             maxLabelWidth = Math.max(maxLabelWidth, widths[i]);
         }
+        xLabelsMaxWidth = maxLabelWidth;
 
         // Computing max number of intervals
         xMaxIntervals = computeMaxIntervals(
@@ -479,6 +481,15 @@ public class ChartView extends BaseChartView {
         setYGuidesVisibility();
     }
 
+    @Override
+    protected float getExtraLeftSize() {
+        return super.getExtraLeftSize() + xLabelsMaxWidth;
+    }
+
+    @Override
+    protected float getExtraRightSize() {
+        return super.getExtraRightSize() + xLabelsMaxWidth;
+    }
 
     private void setXLabelsVisibility() {
         final float fromX = xRangeExt.from;
@@ -598,59 +609,77 @@ public class ChartView extends BaseChartView {
     }
 
     private void drawXLabels(Canvas canvas, float left, float right) {
-        final float fromX = xRange.from;
-        final float toX = xRange.to;
-
         final int fromExtX = (int) Math.ceil(xRangeExt.from);
         final int toExtX = (int) Math.floor(xRangeExt.to);
 
-        final float extraLeft = left - 0f;
-        final float extraRight = getWidth() - right;
-
-        final float dotPosY = yGuides.transformed[0];
-        final float labelPosY = getHeight() - getPaddingBottom();
-
         for (int i = fromExtX; i <= toExtX; i++) {
-            XLabel label = xLabels.get(i);
+            final XLabel label = xLabels.get(i);
 
+            // Ignoring unset and invisible labels
             if (!label.state.isSet() || label.state.get() == 0f) {
                 continue;
             }
 
-            // Ignore labels from deeper levels, to avoid labels stacking
+            // Ignoring labels from deeper levels, to avoid labels stacking
             if (label.level < xLabelsLevel / 2) {
                 continue;
             }
 
-            float alpha = label.state.get();
+            drawXDot(canvas, i, left, right, label.state.get());
 
-            final float dotPosX = ChartMath.mapX(matrix, i);
-
-            // Drawing a dot if it is inside internal range
-            if (fromX <= i && i <= toX) {
-                xLabelDotPaint.setAlpha(toAlpha(alpha));
-                canvas.drawPoint(dotPosX, dotPosY, xLabelDotPaint);
-            }
-
-            // Shifting label's X pos according to its position on screen to fit internal width
-            final float labelShift;
-            if (i < fromX && extraLeft > 0f) {
-                labelShift = 0f;
-                // Animating label appearance on the left
-                alpha *= Math.max(0f, dotPosX / extraLeft);
-            } else if (i > toX && extraRight > 0f) {
-                labelShift = 1f;
-                // Animating label appearance on the right
-                alpha *= Math.max(0f, 1f - (dotPosX - right) / extraRight);
-            } else {
-                labelShift = (dotPosX - left) / (right - left);
-            }
-
-            final float labelPosX = dotPosX - label.width * labelShift;
-
-            xLabelPaint.setAlpha(toAlpha(alpha));
-            canvas.drawText(label.title, labelPosX, labelPosY, xLabelPaint);
+            drawXLabel(canvas, label, i, left, right);
         }
+    }
+
+    private void drawXDot(Canvas canvas, int pos, float left, float right, float alpha) {
+        final float dotPosX = ChartMath.mapX(matrix, pos);
+
+        // Drawing a dot if it is inside internal range
+        if (left - 0.5f < dotPosX && dotPosX < right + 0.5f) {
+            final float dotPosY = yGuides.transformed[0];
+
+            xLabelDotPaint.setAlpha(toAlpha(alpha));
+            canvas.drawPoint(dotPosX, dotPosY, xLabelDotPaint);
+        }
+    }
+
+    private void drawXLabel(Canvas canvas, XLabel label, int pos, float left, float right) {
+        // Getting indexes of nearby labels of a higher level
+        final int prev = findXLabel(xLabels, pos, -1, xLabelsLevel);
+        final int next = findXLabel(xLabels, pos, 1, xLabelsLevel);
+
+        // Calculating exact label position (since distances between labels are not uniform)
+        final float posExact = prev != -1 && next != -1 ? 0.5f * (prev + next) : pos;
+
+        final float labelPosX = ChartMath.mapX(matrix, posExact);
+        final float labelPosY = getHeight() - getPaddingBottom();
+
+        // Shifting label's X pos according to its position on screen to fit internal width
+        final float labelShift = Math.max(0f, Math.min((labelPosX - left) / (right - left) , 1f));
+        final float labelPosXShifted = labelPosX - label.width * labelShift;
+
+        // Calculating alpha so that labels outside of chart are gradually disappearing
+        float state = 1f;
+        if (labelPosX < left) {
+            state = (labelPosX + label.width) / (left + label.width);
+        } else if (labelPosX > right) {
+            state = (getWidth() + label.width - labelPosX) / (getWidth() + label.width - right);
+        }
+        final float alpha = label.state.get() * Math.max(0f, state);
+
+        xLabelPaint.setAlpha(toAlpha(alpha));
+        canvas.drawText(label.title, labelPosXShifted, labelPosY, xLabelPaint);
+    }
+
+    private static int findXLabel(List<XLabel> labels, int from, int direction, float minLevel) {
+        final int currLevel = labels.get(from).level;
+        for (int i = from + direction, size = labels.size(); 0 <= i && i < size; i += direction) {
+            final int level = labels.get(i).level;
+            if (level >= minLevel && level > currLevel) {
+                return i;
+            }
+        }
+        return -1;
     }
 
 
