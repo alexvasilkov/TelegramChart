@@ -140,6 +140,8 @@ abstract class BaseChartView extends View {
 
         selectedPointX = -1;
 
+        animator.stop();
+
         // Setting new chart
         chart = newChart;
 

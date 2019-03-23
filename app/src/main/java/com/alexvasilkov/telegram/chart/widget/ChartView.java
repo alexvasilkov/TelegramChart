@@ -37,8 +37,8 @@ public class ChartView extends BaseChartView {
 
     private List<XLabel> xLabels;
     private float xLabelsMaxWidth;
-    private float xMaxIntervals;
-    int xIntervalsNumber;
+    float xMaxIntervals;
+    int xIntervals;
     private float xLabelsLevel;
 
     private final Paint xLabelPaint = new Paint(PAINT_FLAGS);
@@ -265,9 +265,9 @@ public class ChartView extends BaseChartView {
         // Computing max number of intervals
         xMaxIntervals = computeMaxIntervals(
                 getChartPosition().width(), maxLabelWidth, xLabelPadding);
-        xIntervalsNumber = computeIntervals(size, xMaxIntervals);
+        xIntervals = computeIntervals(size, xMaxIntervals);
 
-        final int[] levels = computeLabelsLevels(size, xIntervalsNumber);
+        final int[] levels = computeLabelsLevels(size, xIntervals);
 
         for (int i = 0; i < size; i++) {
             // Inverting levels position according to direction
@@ -355,10 +355,6 @@ public class ChartView extends BaseChartView {
             fillLevelsInHalves(levels, level, from, mid);
             fillLevelsInHalves(levels, level, mid, to);
         }
-    }
-
-    private static float computeCurrentLevel(float size, float maxIntervals) {
-        return (size - 1f) / maxIntervals;
     }
 
 
@@ -471,7 +467,7 @@ public class ChartView extends BaseChartView {
         super.onUpdateChartState();
 
         // Calculating current X labels level
-        xLabelsLevel = computeCurrentLevel(xRange.size(), xMaxIntervals);
+        xLabelsLevel = (xRange.size() - 1f) / xMaxIntervals;
         setXLabelsVisibility();
 
         yGuides.transform(matrix);
@@ -621,7 +617,7 @@ public class ChartView extends BaseChartView {
             }
 
             // Ignoring labels from deeper levels, to avoid labels stacking
-            if (label.level < 0.5f * xLabelsLevel) {
+            if (xLabelsLevel > 2f * label.level) {
                 continue;
             }
 
@@ -644,14 +640,27 @@ public class ChartView extends BaseChartView {
     }
 
     private void drawXLabel(Canvas canvas, XLabel label, int pos, float left, float right) {
-        // Getting indexes of nearby labels of a higher level
-        final int prev = findXLabel(xLabels, pos, -1, xLabelsLevel);
-        final int next = findXLabel(xLabels, pos, 1, xLabelsLevel);
+        // Getting indexes of nearby labels of same or higher level
+        final int prev = findNeighbourLabel(xLabels, pos, -1);
+        final int next = findNeighbourLabel(xLabels, pos, 1);
 
-        // Calculating exact label position (since distances between labels are not uniform)
-        final float posExact = prev != -1 && next != -1 ? 0.5f * (prev + next) : pos;
+        // Calculating uniform label position (since distances between labels may not be equal)
+        final float posUneven = prev == -1 || next == -1 ? pos : 0.5f * (prev + next);
 
-        final float labelPosX = ChartMath.mapX(matrix, posExact);
+        // Although posUneven allows nice labels distribution we still have to switch
+        // to a real position at some point to make a room for the labels to appear
+        final float posAdjusted;
+        if (xLabelsLevel <= 0.5f * label.level) {
+            posAdjusted = pos;
+        } else if (xLabelsLevel >= 0.66f * label.level) {
+            posAdjusted = posUneven;
+        } else {
+            // Interpolating between pos and posUneven
+            posAdjusted =
+                    pos + (xLabelsLevel / label.level - 0.5f) * (posUneven - pos) / (0.66f - 0.5f);
+        }
+
+        final float labelPosX = ChartMath.mapX(matrix, posAdjusted);
         final float labelPosY = getHeight() - getPaddingBottom();
 
         // Shifting label's X pos according to its position on screen to fit internal width
@@ -677,11 +686,11 @@ public class ChartView extends BaseChartView {
         canvas.drawText(label.title, labelPosXShifted, labelPosY, xLabelPaint);
     }
 
-    private static int findXLabel(List<XLabel> labels, int from, int direction, float minLevel) {
+    private static int findNeighbourLabel(List<XLabel> labels, int from, int direction) {
         final int currLevel = labels.get(from).level;
         for (int i = from + direction, size = labels.size(); 0 <= i && i < size; i += direction) {
             final int level = labels.get(i).level;
-            if (level >= minLevel && level > currLevel) {
+            if (level >= currLevel) {
                 return i;
             }
         }

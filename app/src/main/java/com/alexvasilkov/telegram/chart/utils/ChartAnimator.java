@@ -28,7 +28,7 @@ public class ChartAnimator {
     }
 
     public void stop() {
-        scheduleNextStep();
+        view.removeCallbacks(updateAction);
     }
 
     private void update() {

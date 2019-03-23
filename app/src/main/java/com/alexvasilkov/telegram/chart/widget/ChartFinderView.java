@@ -77,13 +77,6 @@ public class ChartFinderView extends BaseChartView {
         this.chartView = chartView;
     }
 
-    public void setUseDynamicRange(boolean useDynamicRange) {
-        this.useDynamicRange = useDynamicRange;
-        if (chart != null) {
-            setChart(chart); // Resetting chart
-        }
-    }
-
     @Override
     public void setChart(Chart chart) {
         super.setChart(chart);
@@ -158,8 +151,22 @@ public class ChartFinderView extends BaseChartView {
 
         final float width = getChartPosition().width();
 
+        // If min handle size can already fit required number of points
+        // then no dynamic range should be used
+        final boolean canUseDynamicRange = handlesMinDistance >
+                width * chartView.xMaxIntervals / (chartRange.size() - 1f);
+        final boolean useDynamicRange = this.useDynamicRange && canUseDynamicRange;
+
         // Calculating current handles positions
         final float currentScale = width / (xRange.size() - 1f);
+
+        final float minDistance;
+        if (useDynamicRange) {
+            minDistance = handlesMinDistance; // Does not depend on current scale
+        } else {
+            final float fitSize = chartView.xMaxIntervals * currentScale;
+            minDistance = Math.max(fitSize - 0.5f, handlesMinDistance);
+        }
 
         final float handleFromXOrig = (handleRange.from - xRange.from) * currentScale;
         final float handleToXOrig = width - (xRange.to - handleRange.to) * currentScale;
@@ -174,8 +181,8 @@ public class ChartFinderView extends BaseChartView {
 
             if (handleFromX < 0f) {
                 handleFromX = 0f;
-            } else if (handleToX - handleFromX < handlesMinDistance) {
-                handleFromX = handleToX - handlesMinDistance;
+            } else if (handleToX - handleFromX < minDistance) {
+                handleFromX = handleToX - minDistance;
             }
         } else if (selectedHandle == HANDLE_RIGHT) {
             // Moving right edge
@@ -183,8 +190,8 @@ public class ChartFinderView extends BaseChartView {
 
             if (handleToX > width) {
                 handleToX = width;
-            } else if (handleToX - handleFromX < handlesMinDistance) {
-                handleToX = handleFromX + handlesMinDistance;
+            } else if (handleToX - handleFromX < minDistance) {
+                handleToX = handleFromX + minDistance;
             }
 
         } else {
@@ -241,7 +248,7 @@ public class ChartFinderView extends BaseChartView {
             float width, float currentScale) {
 
         final float totalIntervals = chartRange.size() - 1f;
-        final float minIntervals = chartView.xIntervalsNumber;
+        final float minIntervals = chartView.xIntervals;
 
         float rangeFrom;
         float rangeTo;
