@@ -200,6 +200,15 @@ abstract class BaseChartView extends View {
         return linesVisibility;
     }
 
+    boolean hasVisibleLines() {
+        for (boolean visible: getLinesVisibility()) {
+            if (visible) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void useSimplifiedDrawing(boolean simplified) {
         if (simplifiedDrawing != simplified) {
             simplifiedDrawing = simplified;

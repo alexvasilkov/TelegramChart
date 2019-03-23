@@ -21,10 +21,10 @@ public class ChartFinderView extends BaseChartView {
     private static final int HANDLE_RIGHT = 1;
     private static final int HANDLE_BOTH = 0;
 
-    private final float frameXWidth = dpToPx(6);
+    private final float frameXWidth = dpToPx(5);
     private final float frameYWidth = dpToPx(1);
     private final float handleTouchOffset = dpToPx(20);
-    private final float handlesMinDistance = dpToPx(80);
+    private final float handlesMinDistance = dpToPx(60);
 
     private boolean useDynamicRange;
 

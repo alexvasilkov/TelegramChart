@@ -186,8 +186,10 @@ public class ChartView extends BaseChartView {
         final int chartHeight = getChartPosition().height();
         final float minToY = toY - (toY - fromY) * topInset / (chartHeight + topInset);
 
-        final float density = (minToY - fromY) / chartHeight;
-        final int roundFactor = (int) Math.ceil(density) * yIntervals;
+        // Rounding guides to nearest 10^x value
+        final float stepSize = (minToY - fromY) / yIntervals;
+        final float factor10 = stepSize <= 10f ? 0f : (float) Math.floor(Math.log10(stepSize)) - 1f;
+        final int roundFactor = (int) Math.pow(10, factor10) * yIntervals;
 
         fromY = (int) Math.floor(fromY / roundFactor) * roundFactor;
         toY = (int) Math.ceil(minToY / roundFactor) * roundFactor;
@@ -221,7 +223,7 @@ public class ChartView extends BaseChartView {
             }
 
             // Preparing new Y guides
-            yGuides = new YGuides(yGuidesCount);
+            yGuides = new YGuides(yGuidesCount, hasVisibleLines());
             for (int i = 0; i < yGuidesCount; i++) {
                 final int value = (int) (fromY + (toY - fromY) * i / (yGuidesCount - 1));
                 yGuides.orig[i] = value;
@@ -230,21 +232,12 @@ public class ChartView extends BaseChartView {
             }
 
             if (animate) {
-                yGuides.state.setTo(0f); // Setting initial hidden state
+                yGuides.state.setTo(0.2f); // Setting initial almost hidden state
                 yGuides.state.animateTo(1f); // Animating to visible state
             } else {
                 yGuides.state.setTo(1f); // Setting initial visible state
             }
         }
-    }
-
-    @SuppressWarnings("unused")
-    public int getMinY() {
-        return (int) yRangeEnd.from;
-    }
-
-    public int getMaxY() {
-        return (int) yRangeEnd.to;
     }
 
     private void prepareXLabels() {
@@ -559,7 +552,6 @@ public class ChartView extends BaseChartView {
         for (YGuides guides : yGuidesOld) {
             drawYLabels(canvas, guides, pos.left);
         }
-
         drawYLabels(canvas, yGuides, pos.left);
 
         drawXLabels(canvas, pos.left, pos.right);
@@ -592,6 +584,9 @@ public class ChartView extends BaseChartView {
     }
 
     private void drawYLabels(Canvas canvas, YGuides guides, float left) {
+        if (!guides.showTitles) {
+            return;
+        }
         yLabelStrokePaint.setAlpha(toAlpha(guides.state.get()));
         yLabelPaint.setAlpha(toAlpha(guides.state.get()));
 
@@ -676,12 +671,14 @@ public class ChartView extends BaseChartView {
         final String[] titles;
         final float[] orig;
         final float[] transformed;
+        final boolean showTitles;
         final AnimatedState state = new AnimatedState();
 
-        YGuides(int size) {
+        YGuides(int size, boolean showTitles) {
             orig = new float[size];
             transformed = new float[size];
             titles = new String[size];
+            this.showTitles = showTitles;
         }
 
         void transform(Matrix matrix) {

@@ -15,10 +15,12 @@ import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
+import java.text.NumberFormat;
 import java.util.List;
-import java.util.Locale;
 
 class ChartsAdapter {
+
+    private final NumberFormat yFormat = NumberFormat.getIntegerInstance();
 
     View createView(ViewGroup parent, Chart chart, int pos) {
         final Context context = parent.getContext();
@@ -33,8 +35,7 @@ class ChartsAdapter {
         title.setText(context.getString(R.string.chart_name, pos));
 
         chartView.setXLabelFormatter((long time) -> formatDate(context, time));
-        chartView.setYLabelFormatter(
-                (long value) -> formatValue((int) value, chartView.getMaxY()));
+        chartView.setYLabelFormatter(yFormat::format);
         chartView.setSelectionPopupAdapter(new PopupAdapter(context));
 
         chartFinderView.attachTo(chartView);
@@ -75,20 +76,6 @@ class ChartsAdapter {
                 | DateUtils.FORMAT_ABBREV_MONTH;
 
         return DateUtils.formatDateTime(context, timestamp, flags);
-    }
-
-    private static String formatValue(int value, int max) {
-        if (value == 0) {
-            return "0";
-        } else if (max >= 1_000_000) {
-            return String.format(Locale.US, "%.1fM", value / 1_000_000f);
-        } else if (max >= 10_000) {
-            return String.format(Locale.US, "%.0fK", value / 1_000f);
-        } else if (max >= 1_000) {
-            return String.format(Locale.US, "%.1fK", value / 1_000f);
-        } else {
-            return String.valueOf(value);
-        }
     }
 
 }
