@@ -15,7 +15,6 @@
 
     <color name="chart_guides">@color/divider</color>
     <color name="chart_labels">#96A2AA</color>
-    <color name="chart_labels_dot">#D9D9D9</color>
 
     <color name="finder_foreground">#B3EBF0F2</color>
     <color name="finder_frame">#444F89B6</color>
