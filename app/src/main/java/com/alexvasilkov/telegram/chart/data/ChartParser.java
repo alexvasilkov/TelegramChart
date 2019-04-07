@@ -118,7 +118,7 @@ class ChartParser {
     private static long[] getLongValues(Object[] values) {
         long[] result = new long[values.length - 1];
         for (int i = 1, size = values.length; i < size; i++) {
-            result[i - 1] = (long) values[i];
+            result[i - 1] = ((Number) values[i]).longValue();
         }
         return result;
     }
