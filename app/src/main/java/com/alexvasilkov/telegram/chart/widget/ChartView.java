@@ -17,6 +17,7 @@ import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
+import com.alexvasilkov.telegram.chart.utils.LabelsHelper;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -37,8 +38,7 @@ public class ChartView extends BaseChartView {
 
     private List<XLabel> xLabels;
     private float xLabelsMaxWidth;
-    float xMaxIntervals;
-    int xIntervals;
+    final LabelsHelper xLabelsHelper = new LabelsHelper();
     private float xLabelsLevel;
 
     private final Paint xLabelPaint = new Paint(PAINT_FLAGS);
@@ -246,7 +246,7 @@ public class ChartView extends BaseChartView {
             return; // Already prepared
         }
 
-        int size = chart.x.length;
+        final int size = chart.x.length;
         xLabels = new ArrayList<>(size);
 
         // Preparing titles
@@ -262,12 +262,14 @@ public class ChartView extends BaseChartView {
         }
         xLabelsMaxWidth = maxLabelWidth;
 
-        // Computing max number of intervals
-        xMaxIntervals = computeMaxIntervals(
-                getChartPosition().width(), maxLabelWidth, xLabelPadding);
-        xIntervals = computeIntervals(size, xMaxIntervals);
+        // Computing maximum number of intervals that can possibly fit into single screen
+        int totalWidth = getChartPosition().width();
+        float maxIntervals = (totalWidth - maxLabelWidth) / (maxLabelWidth + xLabelPadding);
+        maxIntervals = Math.max(maxIntervals, 2f); // Assuming screen must fit at least 3 labels
+        xLabelsHelper.init(maxIntervals);
 
-        final int[] levels = computeLabelsLevels(size, xIntervals);
+        final float[] levels = xLabelsHelper.computeLabelsLevels(chart.x[0],
+                chart.x[chart.x.length - 1]);
 
         for (int i = 0; i < size; i++) {
             // Inverting levels position according to direction
@@ -278,83 +280,6 @@ public class ChartView extends BaseChartView {
     private float measureXLabel(String title) {
         xLabelPaint.getTextBounds(title, 0, title.length(), textBounds);
         return textBounds.width();
-    }
-
-    /**
-     * Computing maximum number of intervals that can possibly fit into single screen.
-     */
-    private static float computeMaxIntervals(float totalWidth, float labelWidth, float padding) {
-        float maxIntervals = (totalWidth - labelWidth) / (labelWidth + padding);
-        return Math.max(maxIntervals, 2f); // Assuming that screen must fit at least 3 labels
-    }
-
-    private static int computeIntervals(int xSize, float maxIntervals) {
-        // Computing minimum number of steps that each interval should hold
-        final int minStepsPerInterval = (int) Math.ceil((xSize - 1) / maxIntervals);
-
-        // Computing number of whole intervals fitting into single screen
-        return (xSize - 1) / minStepsPerInterval;
-    }
-
-    /**
-     * Returns array of levels for each label.
-     */
-    private static int[] computeLabelsLevels(int size, int intervals) {
-        final int[] levels = new int[size];
-
-        fillInitialLabelsLevel(levels, intervals);
-
-        if (levels[0] != levels[size - 1]) {
-            throw new AssertionError("Initial labels should include edge points");
-        }
-        if (levels[0] == 0) {
-            throw new AssertionError("Initial labels level is invalid");
-        }
-
-        return levels;
-    }
-
-    private static void fillInitialLabelsLevel(int[] levels, int intervals) {
-        final int size = levels.length;
-
-        // Computing actual number of steps per interval (can be bigger than min steps above)
-        final int stepsPerInterval = (size - 1) / intervals;
-
-        // Computing number of intervals that should hold extra step to span entire size
-        final int intervalsWithExtra = (size - 1) % intervals;
-
-        // Dividing first level evenly into intervals and then fill each interval
-        // by recursively dividing it into 2 sub-intervals
-        int prevPos = -1;
-
-        for (int i = 0; i <= intervals; i++) {
-            int pos = i * stepsPerInterval;
-
-            // Adding extra step to last intervals to have a correct total distribution
-            pos += Math.max(intervalsWithExtra - intervals + i, 0);
-            levels[pos] = stepsPerInterval;
-
-            // Setting up values in-between
-            if (prevPos != -1) {
-                fillLevelsInHalves(levels, stepsPerInterval, prevPos, pos);
-            }
-            prevPos = pos;
-        }
-    }
-
-    private static void fillLevelsInHalves(int[] levels, int prevLevel, int from, int to) {
-        final int level = prevLevel / 2;
-
-        if (level <= 1) {
-            for (int i = from + 1; i < to; i++) {
-                levels[i] = 1;
-            }
-        } else {
-            final int mid = (to + from) / 2;
-            levels[mid] = level; // Can't be less than 1
-            fillLevelsInHalves(levels, level, from, mid);
-            fillLevelsInHalves(levels, level, mid, to);
-        }
     }
 
 
@@ -467,7 +392,7 @@ public class ChartView extends BaseChartView {
         super.onUpdateChartState();
 
         // Calculating current X labels level
-        xLabelsLevel = (xRange.size() - 1f) / xMaxIntervals;
+        xLabelsLevel = xLabelsHelper.computeLevel(xRange.size());
         setXLabelsVisibility();
 
         yGuides.transform(matrix);
@@ -687,9 +612,9 @@ public class ChartView extends BaseChartView {
     }
 
     private static int findNeighbourLabel(List<XLabel> labels, int from, int direction) {
-        final int currLevel = labels.get(from).level;
+        final float currLevel = labels.get(from).level;
         for (int i = from + direction, size = labels.size(); 0 <= i && i < size; i += direction) {
-            final int level = labels.get(i).level;
+            final float level = labels.get(i).level;
             if (level >= currLevel) {
                 return i;
             }
@@ -700,11 +625,11 @@ public class ChartView extends BaseChartView {
 
     private static class XLabel {
         final String title;
-        final int level;
+        final float level;
         final float width;
         final AnimatedState state = new AnimatedState();
 
-        XLabel(String title, int level, float width) {
+        XLabel(String title, float level, float width) {
             this.title = title;
             this.level = level;
             this.width = width;

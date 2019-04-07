@@ -150,12 +150,13 @@ public class ChartFinderView extends BaseChartView {
         }
 
         final float width = getChartPosition().width();
+        final float maxIntervals = chartView.xLabelsHelper.getMaxIntervals();
 
         // If min handle size can already fit required number of points
         // then no dynamic range should be used
-        final boolean canUseDynamicRange = handlesMinDistance >
-                width * chartView.xMaxIntervals / (chartRange.size() - 1f);
-        final boolean useDynamicRange = this.useDynamicRange && canUseDynamicRange;
+        final float maxScale = width / (chartRange.size() - 1f);
+        final boolean useDynamicRange = this.useDynamicRange
+                && handlesMinDistance > maxIntervals * maxScale;
 
         // Calculating current handles positions
         final float currentScale = width / (xRange.size() - 1f);
@@ -164,7 +165,7 @@ public class ChartFinderView extends BaseChartView {
         if (useDynamicRange) {
             minDistance = handlesMinDistance; // Does not depend on current scale
         } else {
-            final float fitSize = chartView.xMaxIntervals * currentScale;
+            final float fitSize = maxIntervals * currentScale;
             minDistance = Math.max(fitSize - 0.5f, handlesMinDistance);
         }
 
@@ -248,7 +249,8 @@ public class ChartFinderView extends BaseChartView {
             float width, float currentScale) {
 
         final float totalIntervals = chartRange.size() - 1f;
-        final float minIntervals = chartView.xIntervals;
+        // Computing number of whole intervals fitting into single screen
+        final float minIntervals = chartView.xLabelsHelper.getFitIntervals(chartRange.size());
 
         float rangeFrom;
         float rangeTo;
