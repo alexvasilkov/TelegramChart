@@ -80,7 +80,6 @@
         <item name="chart_foregroundColor">@color/finder_foreground</item>
         <item name="chart_frameColor">@color/finder_frame</item>
         <item name="chart_lineWidth">1dp</item>
-        <item name="chart_useDynamicRange">false</item>
     </style>
 
 

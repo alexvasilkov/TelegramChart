@@ -21,7 +21,6 @@
     <declare-styleable name="ChartFinderView">
         <attr name="chart_foregroundColor" format="reference|color" />
         <attr name="chart_frameColor" format="reference|color" />
-        <attr name="chart_useDynamicRange" format="reference|boolean" />
     </declare-styleable>
 
 </resources>
