@@ -12,8 +12,12 @@ import android.view.MotionEvent;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
+import com.alexvasilkov.telegram.chart.utils.TimeInterval;
+
+import java.util.Calendar;
 
 public class ChartFinderView extends BaseChartView {
 
@@ -24,9 +28,13 @@ public class ChartFinderView extends BaseChartView {
     private final float frameXWidth = dpToPx(4);
     private final float frameYWidth = dpToPx(1);
     private final float handleTouchOffset = dpToPx(20);
-    private final float handlesMinDistance = dpToPx(60);
+    private final float handlesMinDistance = dpToPx(20);
 
     private final Range handleRange = new Range();
+    private final Range handleRangeStart = new Range();
+    private final Range handleRangeEnd = new Range();
+    private final AnimatedState handleState = new AnimatedState();
+
     private final Paint foregroundPaint = new Paint(PAINT_FLAGS);
     private final Paint framePaint = new Paint(PAINT_FLAGS);
     private Integer selectedHandle; // One of HANDLE_* values
@@ -35,6 +43,11 @@ public class ChartFinderView extends BaseChartView {
     private final GestureDetector gestureDetector;
 
     private ChartView chartView;
+
+    private TimeInterval timeInterval;
+    private int minTimeIntervals;
+    private int maxTimeIntervals;
+    private final Calendar calendar = Calendar.getInstance();
 
 
     public ChartFinderView(Context context, AttributeSet attrs) {
@@ -77,14 +90,23 @@ public class ChartFinderView extends BaseChartView {
     @Override
     public void setChart(Chart chart) {
         super.setChart(chart);
-        handleRange.set(chartRange);
         chartView.setChart(chart);
+
+        setInitialHandle();
+        chartView.setRange(handleRange.from, handleRange.to, false, false);
     }
 
     @Override
     public void setLine(int pos, boolean visible, boolean animate) {
         super.setLine(pos, visible, animate);
         chartView.setLine(pos, visible, animate);
+    }
+
+
+    public void setTimeIntervals(TimeInterval interval, int minIntervals, int maxIntervals) {
+        timeInterval = interval;
+        minTimeIntervals = minIntervals;
+        maxTimeIntervals = maxIntervals;
     }
 
     @Override
@@ -99,28 +121,40 @@ public class ChartFinderView extends BaseChartView {
 
     private boolean onDownEvent(float initialX) {
         if (selectedHandle == null) {
-            float leftPos = ChartMath.mapX(matrix, handleRange.from);
-            float rightPos = ChartMath.mapX(matrix, handleRange.to);
+            final float leftPos = ChartMath.mapX(matrix, handleRange.from);
+            final float rightPos = ChartMath.mapX(matrix, handleRange.to);
+            final float midPos = 0.5f * (leftPos + rightPos);
 
-            float leftDist = Math.abs(leftPos - initialX);
-            float rightDist = Math.abs(rightPos - initialX);
+            final float midDist = Math.abs(midPos - initialX);
+            final float leftDist = Math.abs(leftPos - initialX);
+            final float rightDist = Math.abs(rightPos - initialX);
 
-            if (leftDist < rightDist) {
-                if (leftDist <= handleTouchOffset) {
-                    selectedHandle = HANDLE_LEFT;
-                }
-            } else {
-                if (rightDist <= handleTouchOffset) {
-                    selectedHandle = HANDLE_RIGHT;
-                }
-            }
-
-            if (selectedHandle == null && leftPos < initialX && initialX < rightPos) {
+            if (midDist <= 0.5f * handleTouchOffset) {
                 selectedHandle = HANDLE_BOTH;
+            } else {
+                if (leftDist < rightDist) {
+                    if (leftDist <= handleTouchOffset) {
+                        selectedHandle = HANDLE_LEFT;
+                    }
+                } else {
+                    if (rightDist <= handleTouchOffset) {
+                        selectedHandle = HANDLE_RIGHT;
+                    }
+                }
+                if (selectedHandle == null && leftPos < initialX && initialX < rightPos) {
+                    selectedHandle = HANDLE_BOTH;
+                }
             }
 
             if (selectedHandle != null) {
                 firstScrollEvent = true;
+
+                // Stopping animation and applying end value
+                if (!handleState.isFinished()) {
+                    handleState.reset();
+                    handleRange.set(handleRangeEnd);
+                }
+
                 // Optimizing chart drawing while being dragged
                 chartView.useSimplifiedDrawing(true);
             }
@@ -130,6 +164,11 @@ public class ChartFinderView extends BaseChartView {
     }
 
     private void onUpOrCancelEvent() {
+        if (selectedHandle != null && timeInterval != null) {
+            snapToInterval(handleRange, handleRangeEnd, timeInterval, selectedHandle);
+            animateHandle();
+        }
+
         selectedHandle = null;
         chartView.useSimplifiedDrawing(false);
     }
@@ -147,56 +186,76 @@ public class ChartFinderView extends BaseChartView {
         }
 
         final float width = getChartPosition().width();
-        final float maxIntervals = chartView.xLabelsHelper.getMaxIntervals();
-
-        // Calculating current handles positions
         final float currentScale = width / (xRange.size() - 1f);
+        final float distancePos = distanceX / currentScale;
 
-        final float fitSize = maxIntervals * currentScale;
-        final float minDistance = Math.max(fitSize - 0.5f, handlesMinDistance);
+        final float maxIntervalsPerScreen = chartView.xLabelsHelper.getMaxIntervals();
+        final float minHandleRange =
+                Math.max(handlesMinDistance / currentScale, maxIntervalsPerScreen);
 
-        final float handleFromXOrig = (handleRange.from - xRange.from) * currentScale;
-        final float handleToXOrig = width - (xRange.to - handleRange.to) * currentScale;
-
-        float handleFromX = handleFromXOrig;
-        float handleToX = handleToXOrig;
+        float handleFrom = handleRange.from;
+        float handleTo = handleRange.to;
 
         // Applying scrolled distance to handles
         if (selectedHandle == HANDLE_LEFT) {
             // Moving left edge
-            handleFromX -= distanceX;
+            handleFrom -= distancePos;
 
-            if (handleFromX < 0f) {
-                handleFromX = 0f;
-            } else if (handleToX - handleFromX < minDistance) {
-                handleFromX = handleToX - minDistance;
+            if (handleTo - handleFrom < minHandleRange) {
+                handleFrom = handleTo - minHandleRange;
             }
+
+            handleFrom = chartRange.fit(handleFrom);
+
+            // TODO: Find a way to allow zooming a bit more than allowed to handle edges
+            if (timeInterval != null) {
+                // Keeping left handle within intervals bounds
+                final long toTime = chart.x[(int) handleTo];
+                final long minTime = timeInterval.add(calendar, toTime, maxTimeIntervals, -1);
+                final long maxTime = timeInterval.add(calendar, toTime, minTimeIntervals, -1);
+                final float min = handleTo + timeInterval.distance(toTime, minTime);
+                final float max = handleTo + timeInterval.distance(toTime, maxTime);
+
+                handleFrom = handleFrom < min ? min : (handleFrom > max ? max : handleFrom);
+            }
+
         } else if (selectedHandle == HANDLE_RIGHT) {
             // Moving right edge
-            handleToX -= distanceX;
+            handleTo -= distancePos;
 
-            if (handleToX > width) {
-                handleToX = width;
-            } else if (handleToX - handleFromX < minDistance) {
-                handleToX = handleFromX + minDistance;
+            if (handleTo - handleFrom < minHandleRange) {
+                handleTo = handleFrom + minHandleRange;
+            }
+
+            handleTo = chartRange.fit(handleTo);
+
+            if (timeInterval != null) {
+                // Keeping right handle within intervals bounds
+                final long fromTime = chart.x[(int) handleFrom];
+                final long minTime = timeInterval.add(calendar, fromTime, minTimeIntervals, 1);
+                final long maxTime = timeInterval.add(calendar, fromTime, maxTimeIntervals, 1);
+                final float min = handleFrom + timeInterval.distance(fromTime, minTime);
+                final float max = handleFrom + timeInterval.distance(fromTime, maxTime);
+
+                handleTo = handleTo < min ? min : (handleTo > max ? max : handleTo);
             }
 
         } else {
             // Moving both edges
-            handleFromX -= distanceX;
-            handleToX -= distanceX;
+            handleFrom -= distancePos;
+            handleTo -= distancePos;
 
-            if (handleFromX < 0f) {
-                handleToX += 0f - handleFromX;
-                handleFromX = 0f;
-            } else if (handleToX > width) {
-                handleFromX -= handleToX - width;
-                handleToX = width;
+            if (handleFrom < chartRange.from) {
+                handleTo += chartRange.from - handleFrom;
+                handleFrom = chartRange.from;
+            } else if (handleTo > chartRange.to) {
+                handleFrom -= handleTo - chartRange.to;
+                handleTo = chartRange.to;
             }
         }
 
-        handleRange.from = xRange.from + handleFromX / currentScale;
-        handleRange.to = xRange.from + handleToX / currentScale;
+        handleRange.from = chartRange.fit(handleFrom);
+        handleRange.to = chartRange.fit(handleTo);
 
         // Setting new range to attached chart view
         chartView.setRange(handleRange.from, handleRange.to, false, true);
@@ -205,6 +264,79 @@ public class ChartFinderView extends BaseChartView {
         return true;
     }
 
+    private void animateHandle() {
+        chartView.setRange(handleRangeEnd.from, handleRangeEnd.to, true, true);
+
+        handleRangeStart.set(handleRange);
+        handleState.setTo(0f);
+        handleState.animateTo(1f);
+        requestAnimation();
+    }
+
+    private void setInitialHandle() {
+        handleRange.set(chartRange);
+
+        if (timeInterval != null) {
+            // It time interval is set we'll start with max possible range from right side
+            handleRange.from = handleRange.to - maxTimeIntervals * timeInterval.steps;
+            snapToInterval(handleRange, handleRange, timeInterval, HANDLE_BOTH);
+        }
+    }
+
+    private void snapToInterval(Range range, Range dst, TimeInterval interval, int selectedHandle) {
+        final long[] times = chart.x;
+
+        int newFrom = snapToClosestIntervalStart(times, range.from, interval);
+        int newTo = snapToClosestIntervalStart(times, range.to, interval);
+
+        final int intervals = interval.count(times[newFrom], times[newTo]);
+
+        // We need to make sure we are occupying a valid number of intervals
+        if (intervals < minTimeIntervals) {
+            if (selectedHandle == HANDLE_LEFT) {
+                newFrom = snapToClosestIntervalStart(times, newFrom - interval.steps, interval);
+            } else {
+                newTo = snapToClosestIntervalStart(times, newTo + interval.steps, interval);
+            }
+        } else if (intervals > maxTimeIntervals) {
+            if (selectedHandle == HANDLE_LEFT) {
+                newFrom = snapToClosestIntervalStart(times, newFrom + interval.steps, interval);
+            } else {
+                newTo = snapToClosestIntervalStart(times, newTo - interval.steps, interval);
+            }
+        }
+
+        dst.set(newFrom, newTo);
+    }
+
+    private int snapToClosestIntervalStart(long[] times, float pos, TimeInterval interval) {
+        final int posExact = Math.round(chartRange.fit(pos));
+        final int minPos = getNextIntervalStart(times[posExact], posExact, interval, -1);
+        final int maxPos = getNextIntervalStart(times[posExact], posExact, interval, 1);
+        final float state = (pos - minPos) / (float) (maxPos - minPos);
+        return state < 0.5f ? minPos : maxPos;
+    }
+
+    private int getNextIntervalStart(long time, int pos, TimeInterval interval, int direction) {
+        final long nextStart = interval.getStart(calendar, time, direction);
+        final float nextPos = pos + interval.distance(time, nextStart);
+        return Math.round(chartRange.fit(nextPos));
+    }
+
+    @Override
+    boolean onAnimationStep() {
+        return super.onAnimationStep() || !handleState.isFinished();
+    }
+
+    @Override
+    void onUpdateChartState(long now) {
+        super.onUpdateChartState(now);
+
+        if (!handleState.isFinished()) {
+            handleState.update(now);
+            handleRange.interpolate(handleRangeStart, handleRangeEnd, handleState.get());
+        }
+    }
 
     @Override
     protected void onDraw(Canvas canvas) {

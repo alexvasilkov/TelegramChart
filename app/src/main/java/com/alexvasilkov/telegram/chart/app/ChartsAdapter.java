@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.utils.TimeInterval;
 import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
@@ -40,6 +41,7 @@ class ChartsAdapter {
         chartView.setSelectionPopupAdapter(new PopupAdapter(context));
 
         chartFinderView.attachTo(chartView);
+        chartFinderView.setTimeIntervals(TimeInterval.MONTH_BY_DAYS, 1, 2);
         chartFinderView.setChart(chart);
         showLines(chart.lines, linesGroup, chartFinderView);
 

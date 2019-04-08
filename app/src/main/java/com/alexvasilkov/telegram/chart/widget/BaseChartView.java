@@ -212,6 +212,10 @@ abstract class BaseChartView extends View {
         return false;
     }
 
+    void requestAnimation() {
+        notifyReady();
+    }
+
     void useSimplifiedDrawing(boolean simplified) {
         if (simplifiedDrawing != simplified) {
             simplifiedDrawing = simplified;
@@ -337,7 +341,7 @@ abstract class BaseChartView extends View {
     }
 
     boolean onAnimationStep() {
-        onUpdateChartState();
+        onUpdateChartState(AnimatedState.now());
 
         boolean result = !xRangeState.isFinished() || !yRangeState.isFinished();
 
@@ -351,9 +355,7 @@ abstract class BaseChartView extends View {
         return result;
     }
 
-    void onUpdateChartState() {
-        final long now = AnimatedState.now();
-
+    void onUpdateChartState(long now) {
         // Updating lines visibility states if animating
         for (AnimatedState state : linesStates) {
             state.update(now);

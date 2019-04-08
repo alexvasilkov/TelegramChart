@@ -388,18 +388,18 @@ public class ChartView extends BaseChartView {
     }
 
     @Override
-    protected void onUpdateChartState() {
-        super.onUpdateChartState();
+    protected void onUpdateChartState(long now) {
+        super.onUpdateChartState(now);
 
         // Calculating current X labels level
         xLabelsLevel = xLabelsHelper.computeLevel(xRange.size());
-        setXLabelsVisibility();
+        setXLabelsVisibility(now);
 
         yGuides.transform(matrix);
         for (YGuides guides : yGuidesOld) {
             guides.transform(matrix);
         }
-        setYGuidesVisibility();
+        setYGuidesVisibility(now);
     }
 
     @Override
@@ -412,10 +412,9 @@ public class ChartView extends BaseChartView {
         return super.getExtraRightSize() + xLabelsMaxWidth;
     }
 
-    private void setXLabelsVisibility() {
+    private void setXLabelsVisibility(long now) {
         final float fromX = xRangeExt.from;
         final float toX = xRangeExt.to;
-        final long now = AnimatedState.now();
 
         for (int i = 0, size = xLabels.size(); i < size; i++) {
             final XLabel label = xLabels.get(i);
@@ -437,9 +436,7 @@ public class ChartView extends BaseChartView {
         }
     }
 
-    private void setYGuidesVisibility() {
-        final long now = AnimatedState.now();
-
+    private void setYGuidesVisibility(long now) {
         yGuides.state.update(now);
 
         for (YGuides guides : yGuidesOld) {
