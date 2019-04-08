@@ -155,10 +155,10 @@ public class ChartView extends BaseChartView {
     }
 
     @Override
-    public void setLine(int pos, boolean visible, boolean animate) {
-        super.setLine(pos, visible, animate);
+    public void setSource(int pos, boolean visible, boolean animate) {
+        super.setSource(pos, visible, animate);
 
-        // We need to update popup since line visibility is changed
+        // We need to update popup since sources visibility is changed
         updateSelectionPopupView(true);
     }
 
@@ -189,7 +189,7 @@ public class ChartView extends BaseChartView {
 
         // Rounding guides to nearest 10^x value
         final float stepSize = (minToY - fromY) / yIntervals;
-        final int factor10 = (int) Math.floor(Math.log10(stepSize) - 0.75);
+        final int factor10 = (int) Math.floor(Math.log10(stepSize) - 0.5);
         final int roundFactor = (int) Math.pow(10, Math.max(0f, factor10)) * yIntervals;
 
         fromY = (int) Math.floor(fromY / roundFactor) * roundFactor;
@@ -224,7 +224,7 @@ public class ChartView extends BaseChartView {
             }
 
             // Preparing new Y guides
-            yGuides = new YGuides(yGuidesCount, hasVisibleLines());
+            yGuides = new YGuides(yGuidesCount, hasVisibleSources());
             for (int i = 0; i < yGuidesCount; i++) {
                 final int value = (int) (fromY + (toY - fromY) * i / (yGuidesCount - 1));
                 yGuides.orig[i] = value;
@@ -233,7 +233,7 @@ public class ChartView extends BaseChartView {
             }
 
             if (animate) {
-                yGuides.state.setTo(0.2f); // Setting initial almost hidden state
+                yGuides.state.setTo(0f); // Setting initial hidden state
                 yGuides.state.animateTo(1f); // Animating to visible state
             } else {
                 yGuides.state.setTo(1f); // Setting initial visible state
@@ -447,7 +447,7 @@ public class ChartView extends BaseChartView {
     private void updateSelectionPopupView(boolean animate) {
         if (selectionPopupAdapter != null && selectedChartX != -1) {
             final Rect pos = getChartPosition();
-            selectionPopupAdapter.bind(chart, getLinesVisibility(), selectedChartX,
+            selectionPopupAdapter.bind(chart, getSourcesVisibility(), selectedChartX,
                     pos.width(), pos.height(), animate);
         }
     }
@@ -667,7 +667,7 @@ public class ChartView extends BaseChartView {
     public static abstract class PopupAdapter<T extends PopupViewHolder> {
         private T holder;
 
-        protected abstract T createView(int linesCount);
+        protected abstract T createView(int sourcesCount);
 
         protected abstract void bindView(
                 T holder, Chart chart, boolean[] visibilities, int index, boolean animate);
@@ -676,7 +676,7 @@ public class ChartView extends BaseChartView {
         private void bind(Chart chart, boolean[] visibilities, int index,
                 int maxWidth, int maxHeight, boolean animate) {
             if (holder == null) {
-                holder = createView(chart.lines.size());
+                holder = createView(chart.sources.size());
             }
             bindView(holder, chart, visibilities, index, animate);
 

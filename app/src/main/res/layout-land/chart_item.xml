@@ -18,7 +18,7 @@
             tools:text="Followers" />
 
         <LinearLayout
-            android:id="@+id/chart_lines"
+            android:id="@+id/chart_sources"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|end"

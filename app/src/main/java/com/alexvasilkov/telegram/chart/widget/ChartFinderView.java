@@ -97,9 +97,9 @@ public class ChartFinderView extends BaseChartView {
     }
 
     @Override
-    public void setLine(int pos, boolean visible, boolean animate) {
-        super.setLine(pos, visible, animate);
-        chartView.setLine(pos, visible, animate);
+    public void setSource(int pos, boolean visible, boolean animate) {
+        super.setSource(pos, visible, animate);
+        chartView.setSource(pos, visible, animate);
     }
 
 

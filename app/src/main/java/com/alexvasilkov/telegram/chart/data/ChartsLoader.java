@@ -11,11 +11,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ChartsLoader {
 
-    private static final String CHARTS_FILE = "chart_data.json";
+    private static final int[] IDS = { 1, 2, 3, 4, 5 };
+
+    private static final String BASE_DIR = "charts";
+    private static final String OVERVIEW_FILE = "overview.json";
 
     private static List<Chart> cache;
 
@@ -31,7 +35,7 @@ public class ChartsLoader {
         // Assuming it will run quick enough to avoid memory leaks.
         new Thread(() -> {
             try {
-                cache = loadChartsInBackground(context);
+                cache = loadCharts(context);
                 new Handler(Looper.getMainLooper()).post(() -> listener.onResult(cache));
             } catch (Throwable ex) {
                 new Handler(Looper.getMainLooper()).post(() -> error.onResult(ex));
@@ -39,9 +43,18 @@ public class ChartsLoader {
         }).start();
     }
 
-    private static List<Chart> loadChartsInBackground(Context appContext) throws Exception {
-        final String json = readAsset(appContext.getAssets(), CHARTS_FILE);
-        return ChartParser.parseList(json);
+    private static List<Chart> loadCharts(Context appContext) throws Exception {
+        final List<Chart> charts = new ArrayList<>();
+        for (int id : IDS) {
+            charts.add(loadChart(appContext, id));
+        }
+        return charts;
+    }
+
+    private static Chart loadChart(Context appContext, int id) throws Exception {
+        final String fileName = BASE_DIR + "/" + id + "/" + OVERVIEW_FILE;
+        final String json = readAsset(appContext.getAssets(), fileName);
+        return ChartParser.parse(id, json);
     }
 
     @SuppressWarnings("SameParameterValue")

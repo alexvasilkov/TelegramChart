@@ -15,7 +15,7 @@ import android.view.View;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
-import com.alexvasilkov.telegram.chart.domain.Chart.Line;
+import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartAnimator;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
@@ -44,8 +44,8 @@ abstract class BaseChartView extends View {
     private boolean pendingAnimateX;
     private boolean pendingAnimateY;
 
-    private AnimatedState[] linesStates;
-    private boolean[] linesVisibility;
+    private AnimatedState[] sourcesStates;
+    private boolean[] sourcesVisibility;
 
     final Range xRange = new Range();
     final Range xRangeExt = new Range();
@@ -146,7 +146,7 @@ abstract class BaseChartView extends View {
         // Setting new chart
         chart = newChart;
 
-        final int lines = newChart.lines.size();
+        final int sourcesCount = newChart.sources.size();
         final int points = newChart.x.length;
 
         chartRange.set(0, points - 1);
@@ -154,12 +154,12 @@ abstract class BaseChartView extends View {
         pathsPoints = new float[4 * (points - 1)];
         pathsPointsTransformed = new float[4 * (points - 1)];
 
-        linesStates = new AnimatedState[lines];
-        linesVisibility = new boolean[lines];
+        sourcesStates = new AnimatedState[sourcesCount];
+        sourcesVisibility = new boolean[sourcesCount];
 
-        for (int i = 0; i < lines; i++) {
-            linesStates[i] = new AnimatedState();
-            linesStates[i].setTo(1f); // All lines are visible by default
+        for (int i = 0; i < sourcesCount; i++) {
+            sourcesStates[i] = new AnimatedState();
+            sourcesStates[i].setTo(1f); // All sources are visible by default
         }
 
         pendingRange.set(chartRange);
@@ -180,12 +180,12 @@ abstract class BaseChartView extends View {
         notifyReady();
     }
 
-    public void setLine(int pos, boolean visible, boolean animate) {
+    public void setSource(int pos, boolean visible, boolean animate) {
         final float target = visible ? 1f : 0f;
         if (animate) {
-            linesStates[pos].animateTo(target);
+            sourcesStates[pos].animateTo(target);
         } else {
-            linesStates[pos].setTo(target);
+            sourcesStates[pos].setTo(target);
         }
 
         // requesting ranges update
@@ -196,15 +196,15 @@ abstract class BaseChartView extends View {
         notifyReady();
     }
 
-    boolean[] getLinesVisibility() {
-        for (int i = 0, size = linesStates.length; i < size; i++) {
-            linesVisibility[i] = linesStates[i].getTarget() == 1f;
+    boolean[] getSourcesVisibility() {
+        for (int i = 0, size = sourcesStates.length; i < size; i++) {
+            sourcesVisibility[i] = sourcesStates[i].getTarget() == 1f;
         }
-        return linesVisibility;
+        return sourcesVisibility;
     }
 
-    boolean hasVisibleLines() {
-        for (boolean visible : getLinesVisibility()) {
+    boolean hasVisibleSources() {
+        for (boolean visible : getSourcesVisibility()) {
             if (visible) {
                 return true;
             }
@@ -268,19 +268,19 @@ abstract class BaseChartView extends View {
         final int fromXInt = (int) Math.floor(fromX);
         final int toXInt = (int) Math.ceil(toX);
 
-        // Calculating min and max Y value across all visible lines
+        // Calculating min and max Y value across all visible sources
         int minY = Integer.MAX_VALUE;
         int maxY = Integer.MIN_VALUE;
 
-        for (int l = 0, size = chart.lines.size(); l < size; l++) {
-            if (linesStates[l].getTarget() != 1f) {
-                continue; // Ignoring invisible lines
+        for (int l = 0, size = chart.sources.size(); l < size; l++) {
+            if (sourcesStates[l].getTarget() != 1f) {
+                continue; // Ignoring invisible sources
             }
 
-            final Line line = chart.lines.get(l);
+            final Source source = chart.sources.get(l);
             for (int i = fromXInt; i <= toXInt; i++) {
-                minY = minY > line.y[i] ? line.y[i] : minY;
-                maxY = maxY < line.y[i] ? line.y[i] : maxY;
+                minY = minY > source.y[i] ? source.y[i] : minY;
+                maxY = maxY < source.y[i] ? source.y[i] : maxY;
             }
         }
 
@@ -345,7 +345,7 @@ abstract class BaseChartView extends View {
 
         boolean result = !xRangeState.isFinished() || !yRangeState.isFinished();
 
-        for (AnimatedState state : linesStates) {
+        for (AnimatedState state : sourcesStates) {
             result |= !state.isFinished();
         }
 
@@ -356,8 +356,8 @@ abstract class BaseChartView extends View {
     }
 
     void onUpdateChartState(long now) {
-        // Updating lines visibility states if animating
-        for (AnimatedState state : linesStates) {
+        // Updating sources visibility states if animating
+        for (AnimatedState state : sourcesStates) {
             state.update(now);
         }
 
@@ -423,22 +423,22 @@ abstract class BaseChartView extends View {
         final int from = (int) Math.floor(xRangeExt.from);
         final int to = (int) Math.ceil(xRangeExt.to);
 
-        for (int l = 0, size = chart.lines.size(); l < size; l++) {
-            final float state = linesStates[l].get();
-            final Line line = chart.lines.get(l);
+        for (int l = 0, size = chart.sources.size(); l < size; l++) {
+            final float state = sourcesStates[l].get();
+            final Source source = chart.sources.get(l);
             if (state == 0f) {
-                continue; // Ignoring invisible lines
+                continue; // Ignoring invisible sources
             }
 
-            pathPaint.setColor(line.color);
+            pathPaint.setColor(source.color);
             pathPaint.setAlpha(toAlpha(state));
 
             if (isAnimating || simplifiedDrawing) {
                 // Drawing a set of lines is much faster than drawing a path
-                drawAsLines(canvas, line.y, from, to);
+                drawAsLines(canvas, source.y, from, to);
             } else {
                 // But a path looks better since it smoothly joins the lines
-                drawAsPath(canvas, line.y, from, to);
+                drawAsPath(canvas, source.y, from, to);
             }
         }
     }
@@ -482,20 +482,20 @@ abstract class BaseChartView extends View {
             return;
         }
 
-        for (int l = 0, size = chart.lines.size(); l < size; l++) {
-            final float state = linesStates[l].get();
-            final Line line = chart.lines.get(l);
+        for (int l = 0, size = chart.sources.size(); l < size; l++) {
+            final float state = sourcesStates[l].get();
+            final Source source = chart.sources.get(l);
             if (state == 0f) {
-                continue; // Ignoring invisible lines
+                continue; // Ignoring invisible sources
             }
 
-            pathPaint.setColor(line.color);
+            pathPaint.setColor(source.color);
             pathPaint.setAlpha(toAlpha(state));
             // Point's alpha should change much slower than main path
             pointPaint.setAlpha(toAlpha((float) Math.sqrt(Math.sqrt(state))));
 
             float posX = ChartMath.mapX(matrix, selectedPointX);
-            float posY = ChartMath.mapY(matrix, line.y[selectedPointX]);
+            float posY = ChartMath.mapY(matrix, source.y[selectedPointX]);
 
             canvas.drawCircle(posX, posY, pointRadius, pointPaint);
             canvas.drawCircle(posX, posY, pointRadius, pathPaint);

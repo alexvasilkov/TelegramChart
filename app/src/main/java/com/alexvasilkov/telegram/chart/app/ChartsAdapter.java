@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.utils.TimeInterval;
 import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
@@ -32,7 +33,7 @@ class ChartsAdapter {
         final TextView title = layout.findViewById(R.id.chart_title);
         final ChartView chartView = layout.findViewById(R.id.chart_view);
         final ChartFinderView chartFinderView = layout.findViewById(R.id.chart_finder_view);
-        final ViewGroup linesGroup = layout.findViewById(R.id.chart_lines);
+        final ViewGroup sourcesGroup = layout.findViewById(R.id.chart_sources);
 
         title.setText(context.getString(R.string.chart_name, pos));
 
@@ -41,37 +42,37 @@ class ChartsAdapter {
         chartView.setSelectionPopupAdapter(new PopupAdapter(context));
 
         chartFinderView.attachTo(chartView);
-        chartFinderView.setTimeIntervals(TimeInterval.MONTH_BY_DAYS, 1, 2);
+        chartFinderView.setTimeIntervals(TimeInterval.MONTH_BY_DAYS, 2, 6);
         chartFinderView.setChart(chart);
-        showLines(chart.lines, linesGroup, chartFinderView);
+        showSources(chart.sources, sourcesGroup, chartFinderView);
 
         return layout;
     }
 
-    private static void showLines(
-            List<Chart.Line> lines, ViewGroup linesGroup, ChartFinderView chartFinderView) {
-        linesGroup.removeAllViews();
+    private static void showSources(
+            List<Source> sources, ViewGroup sourcesGroup, ChartFinderView chartFinderView) {
+        sourcesGroup.removeAllViews();
 
-        if (lines == null) {
+        if (sources == null) {
             return;
         }
 
-        for (int i = 0, size = lines.size(); i < size; i++) {
-            final Chart.Line line = lines.get(i);
+        for (int i = 0, size = sources.size(); i < size; i++) {
+            final Source source = sources.get(i);
             final int pos = i;
 
-            final CheckBox check = (CheckBox) LayoutInflater.from(linesGroup.getContext())
-                    .inflate(R.layout.chart_line_item, linesGroup, false);
+            final CheckBox check = (CheckBox) LayoutInflater.from(sourcesGroup.getContext())
+                    .inflate(R.layout.chart_source_item, sourcesGroup, false);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                check.setButtonTintList(ColorStateList.valueOf(line.color));
+                check.setButtonTintList(ColorStateList.valueOf(source.color));
             }
-            check.setText(line.name);
+            check.setText(source.name);
             check.setChecked(true);
             check.setOnCheckedChangeListener((CompoundButton button, boolean isChecked) ->
-                    chartFinderView.setLine(pos, isChecked, true));
+                    chartFinderView.setSource(pos, isChecked, true));
 
-            linesGroup.addView(check);
+            sourcesGroup.addView(check);
         }
     }
 

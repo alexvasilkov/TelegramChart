@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.os.Build;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,20 +21,13 @@ class ChartParser {
 
     private ChartParser() {} // No instances
 
-    static List<Chart> parseList(String json) throws JSONException {
-        final JSONArray array = new JSONArray(json);
-        final List<Chart> charts = new ArrayList<>();
-        for (int i = 0, size = array.length(); i < size; i++) {
-            charts.add(parse(array.getJSONObject(i)));
-        }
-        return charts;
-    }
-
-    private static Chart parse(JSONObject object) throws JSONException {
+    static Chart parse(int id, String json) throws JSONException {
+        final JSONObject object = new JSONObject(json);
         final Object[][] columns = toArrayOfArrays(object.getJSONArray("columns"));
         final Map<String, String> types = toMap(object.getJSONObject("types"));
         final Map<String, String> names = toMap(object.getJSONObject("names"));
         final Map<String, String> colors = toMap(object.getJSONObject("colors"));
+        final boolean yScaled = object.optBoolean("y_scaled", false);
 
         checkNotNull(columns);
         checkNotNull(types);
@@ -41,7 +35,13 @@ class ChartParser {
         checkNotNull(colors);
 
         String xName = getKeysForValue(types, "x").get(0);
-        List<String> yNames = getKeysForValue(types, "line");
+        String type = getFirstValue(types, "x");
+        if (type == null) {
+            throw new NullPointerException();
+        }
+
+        List<String> yNames = getKeysForValue(types, type);
+
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT) {
             Collections.sort(yNames); // Old versions does not preserve keys order
         }
@@ -54,7 +54,7 @@ class ChartParser {
         }
         checkNotNull(xValues);
 
-        List<Chart.Line> lines = new ArrayList<>();
+        List<Source> sources = new ArrayList<>();
 
         for (String yName : yNames) {
             int[] yValues = null;
@@ -70,10 +70,22 @@ class ChartParser {
 
             int color = Color.parseColor(colors.get(yName));
 
-            lines.add(new Chart.Line(name, color, yValues));
+            sources.add(new Source(name, color, yValues));
         }
 
-        return new Chart(xValues, lines);
+        return new Chart(id, parseType(type, yScaled), xValues, sources);
+    }
+
+    private static Chart.Type parseType(String type, boolean yScaled) {
+        switch (type) {
+            case "line":
+                return yScaled ? Chart.Type.TWO_LINES : Chart.Type.LINES;
+            case "bar":
+                return Chart.Type.BARS;
+            case "area":
+                return Chart.Type.PERCENTAGE;
+        }
+        throw new IllegalArgumentException("Unknown type: " + type);
     }
 
 
@@ -102,6 +114,16 @@ class ChartParser {
         return result;
     }
 
+    @SuppressWarnings("SameParameterValue")
+    private static String getFirstValue(Map<String, String> map, String exclude) {
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            if (!exclude.equals(entry.getValue())) {
+                return entry.getValue();
+            }
+        }
+
+        return null;
+    }
 
     private static List<String> getKeysForValue(Map<String, String> map, String value) {
         ArrayList<String> keys = new ArrayList<>();

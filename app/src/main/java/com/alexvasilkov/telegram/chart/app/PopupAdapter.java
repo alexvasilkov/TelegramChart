@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
 class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
@@ -24,8 +25,8 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
     }
 
     @Override
-    protected ViewHolder createView(int linesCount) {
-        return new ViewHolder(LayoutInflater.from(context), linesCount);
+    protected ViewHolder createView(int sourcesCount) {
+        return new ViewHolder(LayoutInflater.from(context), sourcesCount);
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -36,17 +37,17 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
 
         holder.title.setText(formatPopupDate(chart.x[index]));
 
-        for (int i = 0, size = chart.lines.size(); i < size; i++) {
+        for (int i = 0, size = chart.sources.size(); i < size; i++) {
             final TextView text = holder.items[i];
             final ObjectAnimator anim = holder.itemsAnim[i];
-            final Chart.Line line = chart.lines.get(i);
+            final Source source = chart.sources.get(i);
 
-            text.setTextColor(line.color);
-            text.setText(line.y[index] + "\n" + line.name);
+            text.setTextColor(source.color);
+            text.setText(source.y[index] + "\n" + source.name);
 
             final float targetAlpha = visibilities[i] ? 1f : MIN_VALUE_ALPHA;
             if (animate) {
-                // Animating hidden line's value
+                // Animating hidden sources's value
                 anim.setFloatValues(targetAlpha);
                 anim.start();
             } else {
@@ -55,7 +56,7 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
             }
 
             // Setting max width of the text view to prevent it from constantly changing its size
-            setMinWidth(text, findMax(line.y));
+            setMinWidth(text, findMax(source.y));
         }
     }
 
