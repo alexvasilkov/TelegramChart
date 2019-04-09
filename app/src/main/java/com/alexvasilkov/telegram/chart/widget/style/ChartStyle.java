@@ -17,16 +17,26 @@ public class ChartStyle {
     public final float pointRadius;
     public final int pointColor;
 
+    public final float selectionWidth;
+    public final int selectionColor;
+
     public ChartStyle(Context context, AttributeSet attrs) {
         TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.BaseChartView);
 
         lineWidth = arr.getDimension(R.styleable.BaseChartView_chart_lineWidth,
                 dpToPx(context, 2f));
 
-        pointColor = arr.getColor(R.styleable.BaseChartView_chart_pointColor, Color.WHITE);
+        pointColor = arr.getColor(R.styleable.BaseChartView_chart_pointColor,
+                Color.WHITE);
 
         pointRadius = arr.getDimension(R.styleable.BaseChartView_chart_pointRadius,
                 dpToPx(context, 4f));
+
+        selectionWidth = arr.getDimension(R.styleable.BaseChartView_chart_selectionWidth,
+                dpToPx(context, 2f));
+
+        selectionColor = arr.getColor(R.styleable.BaseChartView_chart_selectionColor,
+                Color.TRANSPARENT);
 
         arr.recycle();
     }

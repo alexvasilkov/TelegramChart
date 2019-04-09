@@ -67,6 +67,8 @@
         <item name="chart_lineWidth">1.5dp</item>
         <item name="chart_pointColor">@color/background</item>
         <item name="chart_pointRadius">4dp</item>
+        <item name="chart_selectionColor">@color/chart_guides</item>
+        <item name="chart_selectionWidth">2dp</item>
     </style>
 
     <style name="Chart.Finder">

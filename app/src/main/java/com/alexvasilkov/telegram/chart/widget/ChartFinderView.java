@@ -80,8 +80,6 @@ public class ChartFinderView extends BaseChartView {
         gestureDetector = new GestureDetector(context, listener);
         gestureDetector.setIsLongpressEnabled(false);
 
-        final int inset = (int) ChartStyle.dpToPx(getContext(), 4f);
-        setInsets(0, inset, 0, inset);
         useSimplifiedDrawing(true); // Optimizing preview rendering
     }
 

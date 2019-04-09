@@ -4,6 +4,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.utils.Range;
 import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
 public abstract class Painter {
@@ -14,6 +15,13 @@ public abstract class Painter {
         this.chart = chart;
     }
 
+
+    public abstract void calculateYRange(
+            Range yRange,
+            int from,
+            int to,
+            boolean[] sourcesStates
+    );
 
     public abstract void draw(
             Canvas canvas,
@@ -34,9 +42,11 @@ public abstract class Painter {
     public static Painter create(Chart chart, ChartStyle style) {
         switch (chart.type) {
             case LINES:
-                return new LinePainter(chart, style);
+                return new LinesPainter(chart, style);
+            case BARS:
+                return new BarsPainter(chart);
             default:
-                return new LinePainter(chart, style); // Fallback to line painter
+                return new LinesPainter(chart, style); // Fallback to line painter
         }
     }
 

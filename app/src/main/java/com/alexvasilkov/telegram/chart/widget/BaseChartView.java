@@ -9,12 +9,11 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
-import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartAnimator;
 import com.alexvasilkov.telegram.chart.utils.Range;
-import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 import com.alexvasilkov.telegram.chart.widget.painter.Painter;
+import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
 abstract class BaseChartView extends View {
 
@@ -41,6 +40,7 @@ abstract class BaseChartView extends View {
     private final Range xRangeEnd = new Range();
     private final AnimatedState xRangeState = new AnimatedState();
 
+    private final Range yRangeMinMax = new Range();
     private final Range yRange = new Range();
     private final Range yRangeStart = new Range();
     final Range yRangeEnd = new Range();
@@ -242,30 +242,13 @@ abstract class BaseChartView extends View {
         final int fromXInt = (int) Math.floor(fromX);
         final int toXInt = (int) Math.ceil(toX);
 
-        // Calculating min and max Y value across all visible sources
-        int minY = Integer.MAX_VALUE;
-        int maxY = Integer.MIN_VALUE;
+        painter.calculateYRange(yRangeMinMax, fromXInt, toXInt, getSourcesVisibility());
 
-        for (int l = 0, size = chart.sources.size(); l < size; l++) {
-            if (sourcesStates[l].getTarget() != 1f) {
-                continue; // Ignoring invisible sources
-            }
-
-            final Source source = chart.sources.get(l);
-            for (int i = fromXInt; i <= toXInt; i++) {
-                minY = minY > source.y[i] ? source.y[i] : minY;
-                maxY = maxY < source.y[i] ? source.y[i] : maxY;
-            }
-        }
-
-        if (minY == Integer.MAX_VALUE) {
-            minY = 0;
-        }
-        if (maxY == Integer.MIN_VALUE) {
-            maxY = minY + 1;
-        }
-
-        onRangeSet(fromX, toX, minY, maxY, pendingAnimateX, pendingAnimateY);
+        onRangeSet(
+                fromX, toX,
+                yRangeMinMax.from, yRangeMinMax.to,
+                pendingAnimateX, pendingAnimateY
+        );
 
         // Clearing pending range
         pendingRange.set(0f, 0f);
@@ -389,8 +372,8 @@ abstract class BaseChartView extends View {
             return;
         }
 
-        final int from = (int) Math.floor(xRange.from);
-        final int to = (int) Math.ceil(xRange.to);
+        final int from = (int) Math.floor(xRangeExt.from);
+        final int to = (int) Math.ceil(xRangeExt.to);
         final boolean simplified = isAnimating || simplifiedDrawing;
 
         painter.draw(canvas, matrix, from, to, sourcesStatesValues, selectedPointX, simplified);

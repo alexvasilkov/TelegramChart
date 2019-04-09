@@ -5,6 +5,8 @@
         <attr name="chart_lineWidth" format="reference|dimension" />
         <attr name="chart_pointRadius" format="reference|dimension" />
         <attr name="chart_pointColor" format="reference|color" />
+        <attr name="chart_selectionWidth" format="reference|dimension" />
+        <attr name="chart_selectionColor" format="reference|color" />
     </declare-styleable>
 
     <declare-styleable name="ChartView">

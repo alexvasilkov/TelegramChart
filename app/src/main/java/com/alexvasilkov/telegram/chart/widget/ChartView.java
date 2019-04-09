@@ -44,7 +44,6 @@ public class ChartView extends BaseChartView {
 
     private final Paint xLabelPaint = new Paint(ChartStyle.PAINT_FLAGS);
     private final Paint xLabelDotPaint = new Paint(ChartStyle.PAINT_FLAGS);
-    private final Paint xSelectionPaint = new Paint(ChartStyle.PAINT_FLAGS);
 
     private final Paint yGuidesPaint = new Paint(ChartStyle.PAINT_FLAGS);
     private final Paint yLabelPaint = new Paint(ChartStyle.PAINT_FLAGS);
@@ -96,9 +95,6 @@ public class ChartView extends BaseChartView {
         xLabelDotPaint.setStrokeWidth(guidesWidth * 2f);
         xLabelDotPaint.setColor(labelsDotColor);
         xLabelDotPaint.setStrokeCap(Paint.Cap.ROUND);
-
-        xSelectionPaint.setStrokeWidth(guidesWidth * 2f);
-        xSelectionPaint.setColor(guidesColor);
 
         yGuidesPaint.setStrokeWidth(guidesWidth);
         yGuidesPaint.setColor(guidesColor);
@@ -479,12 +475,6 @@ public class ChartView extends BaseChartView {
             drawYGuides(canvas, guides, pos.left, pos.right);
         }
         drawYGuides(canvas, yGuides, pos.left, pos.right);
-
-        // Drawing selected point if withing visible range
-        if (selectedChartX != -1) {
-            float posX = ChartMath.mapX(matrix, selectedChartX);
-            canvas.drawLine(posX, pos.bottom, posX, pos.top - topInset, xSelectionPaint);
-        }
 
         // Drawing chart
         super.onDraw(canvas);
