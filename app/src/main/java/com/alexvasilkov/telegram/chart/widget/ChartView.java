@@ -18,6 +18,7 @@ import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.LabelsHelper;
+import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -30,8 +31,8 @@ public class ChartView extends BaseChartView {
     private final int topInset;
     private final int yGuidesCount;
 
-    private final float xLabelPadding = dpToPx(10f);
-    private final float yLabelMarginBottom = dpToPx(5f);
+    private final float xLabelPadding;
+    private final float yLabelMarginBottom;
 
     private YGuides yGuides;
     private final List<YGuides> yGuidesOld = new ArrayList<>();
@@ -41,13 +42,13 @@ public class ChartView extends BaseChartView {
     final LabelsHelper xLabelsHelper = new LabelsHelper();
     private float xLabelsLevel;
 
-    private final Paint xLabelPaint = new Paint(PAINT_FLAGS);
-    private final Paint xLabelDotPaint = new Paint(PAINT_FLAGS);
-    private final Paint xSelectionPaint = new Paint(PAINT_FLAGS);
+    private final Paint xLabelPaint = new Paint(ChartStyle.PAINT_FLAGS);
+    private final Paint xLabelDotPaint = new Paint(ChartStyle.PAINT_FLAGS);
+    private final Paint xSelectionPaint = new Paint(ChartStyle.PAINT_FLAGS);
 
-    private final Paint yGuidesPaint = new Paint(PAINT_FLAGS);
-    private final Paint yLabelPaint = new Paint(PAINT_FLAGS);
-    private final Paint yLabelStrokePaint = new Paint(PAINT_FLAGS);
+    private final Paint yGuidesPaint = new Paint(ChartStyle.PAINT_FLAGS);
+    private final Paint yLabelPaint = new Paint(ChartStyle.PAINT_FLAGS);
+    private final Paint yLabelStrokePaint = new Paint(ChartStyle.PAINT_FLAGS);
 
     private Formatter xLabelFormatter;
     private Formatter yLabelFormatter;
@@ -66,16 +67,27 @@ public class ChartView extends BaseChartView {
     public ChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
+        xLabelPadding = ChartStyle.dpToPx(context, 10f);
+        yLabelMarginBottom = ChartStyle.dpToPx(context, 5f);
+
+        float labelsSize = ChartStyle.dpToPx(context, 12f);
+        int labelsColor = Color.DKGRAY;
+        int labelsStrokeColor = Color.TRANSPARENT;
+        float labelsStrokeWidth = ChartStyle.dpToPx(context, 2f);
+        int labelsDotColor = Color.DKGRAY;
+        float guidesWidth = ChartStyle.dpToPx(context, 1f);
+        int guidesColor = Color.LTGRAY;
+        int yGuidesCountDefault = 6;
+
         TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.ChartView);
-        float labelsSize =
-                arr.getDimension(R.styleable.ChartView_chart_labelsTextSize, dpToPx(12f));
-        int labelsColor = arr.getColor(R.styleable.ChartView_chart_labelsColor, Color.DKGRAY);
-        int labelsStrokeColor =
-                arr.getColor(R.styleable.ChartView_chart_labelsStrokeColor, Color.TRANSPARENT);
-        int labelsDotColor = arr.getColor(R.styleable.ChartView_chart_labelsDotColor, Color.DKGRAY);
-        float guidesWidth = arr.getDimension(R.styleable.ChartView_chart_guidesWidth, dpToPx(1f));
-        int guidesColor = arr.getColor(R.styleable.ChartView_chart_guidesColor, Color.LTGRAY);
-        yGuidesCount = arr.getInt(R.styleable.ChartView_chart_guidesNumber, 6);
+        labelsSize = arr.getDimension(R.styleable.ChartView_chart_labelsTextSize, labelsSize);
+        labelsColor = arr.getColor(R.styleable.ChartView_chart_labelsColor, labelsColor);
+        labelsStrokeColor =
+                arr.getColor(R.styleable.ChartView_chart_labelsStrokeColor, labelsStrokeColor);
+        labelsDotColor = arr.getColor(R.styleable.ChartView_chart_labelsDotColor, labelsDotColor);
+        guidesWidth = arr.getDimension(R.styleable.ChartView_chart_guidesWidth, guidesWidth);
+        guidesColor = arr.getColor(R.styleable.ChartView_chart_guidesColor, guidesColor);
+        yGuidesCount = arr.getInt(R.styleable.ChartView_chart_guidesNumber, yGuidesCountDefault);
         arr.recycle();
 
         xLabelPaint.setTextSize(labelsSize);
@@ -96,7 +108,7 @@ public class ChartView extends BaseChartView {
 
         yLabelStrokePaint.set(yLabelPaint);
         yLabelStrokePaint.setStyle(Paint.Style.STROKE);
-        yLabelStrokePaint.setStrokeWidth(dpToPx(3f));
+        yLabelStrokePaint.setStrokeWidth(labelsStrokeWidth);
         yLabelStrokePaint.setColor(labelsStrokeColor);
 
         topInset = (int) (labelsSize + yLabelMarginBottom);
@@ -617,6 +629,10 @@ public class ChartView extends BaseChartView {
             }
         }
         return -1;
+    }
+
+    static int toAlpha(float alpha) {
+        return Math.round(255 * alpha);
     }
 
 

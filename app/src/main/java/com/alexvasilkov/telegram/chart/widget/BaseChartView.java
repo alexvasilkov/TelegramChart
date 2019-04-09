@@ -1,44 +1,31 @@
 package com.alexvasilkov.telegram.chart.widget;
 
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Rect;
 import android.os.Build;
 import android.util.AttributeSet;
-import android.util.TypedValue;
 import android.view.View;
 
-import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartAnimator;
-import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
+import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
+import com.alexvasilkov.telegram.chart.widget.painter.Painter;
 
 abstract class BaseChartView extends View {
-
-    static final int PAINT_FLAGS = Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG;
 
     private final ChartAnimator animator;
 
     final Matrix matrix = new Matrix();
 
-    private final Paint pathPaint = new Paint(PAINT_FLAGS);
-    private final Path path = new Path();
-    private float[] pathsPoints;
-    private float[] pathsPointsTransformed;
-
-    private final Paint pointPaint = new Paint(PAINT_FLAGS);
-    private final float pointRadius;
-
     private boolean isAnimating;
     private boolean simplifiedDrawing;
+
+    private ChartStyle chartStyle;
 
     private final Range pendingRange = new Range();
     private boolean pendingAnimateX;
@@ -46,6 +33,7 @@ abstract class BaseChartView extends View {
 
     private AnimatedState[] sourcesStates;
     private boolean[] sourcesVisibility;
+    private float[] sourcesStatesValues;
 
     final Range xRange = new Range();
     final Range xRangeExt = new Range();
@@ -59,6 +47,7 @@ abstract class BaseChartView extends View {
     private final AnimatedState yRangeState = new AnimatedState();
 
     Chart chart;
+    Painter painter;
     final Range chartRange = new Range();
 
     private final Rect insets = new Rect();
@@ -70,22 +59,8 @@ abstract class BaseChartView extends View {
     BaseChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.BaseChartView);
-        final float lineWidth =
-                arr.getDimension(R.styleable.BaseChartView_chart_lineWidth, dpToPx(2f));
-        final int pointColor =
-                arr.getColor(R.styleable.BaseChartView_chart_pointColor, Color.WHITE);
-        pointRadius = arr.getDimension(R.styleable.BaseChartView_chart_pointRadius, dpToPx(4f));
-        arr.recycle();
-
+        chartStyle = new ChartStyle(context, attrs);
         animator = new ChartAnimator(this, this::onAnimationStep);
-
-        pathPaint.setStyle(Paint.Style.STROKE);
-        pathPaint.setStrokeWidth(lineWidth);
-        pathPaint.setStrokeJoin(Paint.Join.ROUND);
-
-        pointPaint.setStyle(Paint.Style.FILL);
-        pointPaint.setColor(pointColor);
 
         setWillNotDraw(false);
     }
@@ -145,21 +120,20 @@ abstract class BaseChartView extends View {
 
         // Setting new chart
         chart = newChart;
+        painter = Painter.create(chart, chartStyle);
+
+        chartRange.set(0, newChart.x.length - 1);
 
         final int sourcesCount = newChart.sources.size();
-        final int points = newChart.x.length;
-
-        chartRange.set(0, points - 1);
-
-        pathsPoints = new float[4 * (points - 1)];
-        pathsPointsTransformed = new float[4 * (points - 1)];
-
         sourcesStates = new AnimatedState[sourcesCount];
+        sourcesStatesValues = new float[sourcesCount];
         sourcesVisibility = new boolean[sourcesCount];
 
+        // All sources should be visible by default
         for (int i = 0; i < sourcesCount; i++) {
             sourcesStates[i] = new AnimatedState();
-            sourcesStates[i].setTo(1f); // All sources are visible by default
+            sourcesStates[i].setTo(1f);
+            sourcesStatesValues[i] = 1f;
         }
 
         pendingRange.set(chartRange);
@@ -357,8 +331,9 @@ abstract class BaseChartView extends View {
 
     void onUpdateChartState(long now) {
         // Updating sources visibility states if animating
-        for (AnimatedState state : sourcesStates) {
-            state.update(now);
+        for (int i = 0, size = sourcesStates.length; i < size; i++) {
+            sourcesStates[i].update(now);
+            sourcesStatesValues[i] = sourcesStates[i].get();
         }
 
         // Updating X range if animating
@@ -414,102 +389,11 @@ abstract class BaseChartView extends View {
             return;
         }
 
-        drawChartLines(canvas);
-        drawSelectedPoints(canvas);
-    }
+        final int from = (int) Math.floor(xRange.from);
+        final int to = (int) Math.ceil(xRange.to);
+        final boolean simplified = isAnimating || simplifiedDrawing;
 
-
-    private void drawChartLines(Canvas canvas) {
-        final int from = (int) Math.floor(xRangeExt.from);
-        final int to = (int) Math.ceil(xRangeExt.to);
-
-        for (int l = 0, size = chart.sources.size(); l < size; l++) {
-            final float state = sourcesStates[l].get();
-            final Source source = chart.sources.get(l);
-            if (state == 0f) {
-                continue; // Ignoring invisible sources
-            }
-
-            pathPaint.setColor(source.color);
-            pathPaint.setAlpha(toAlpha(state));
-
-            if (isAnimating || simplifiedDrawing) {
-                // Drawing a set of lines is much faster than drawing a path
-                drawAsLines(canvas, source.y, from, to);
-            } else {
-                // But a path looks better since it smoothly joins the lines
-                drawAsPath(canvas, source.y, from, to);
-            }
-        }
-    }
-
-    private void drawAsPath(Canvas canvas, int[] values, int from, int to) {
-        path.reset();
-        for (int i = from; i <= to; i++) {
-            if (i == from) {
-                path.moveTo(i, values[i]);
-            } else {
-                path.lineTo(i, values[i]);
-            }
-        }
-
-        path.transform(matrix);
-
-        canvas.drawPath(path, pathPaint);
-    }
-
-    private void drawAsLines(Canvas canvas, int[] values, int from, int to) {
-        final float[] points = pathsPoints;
-
-        for (int i = from; i < to; i++) {
-            points[4 * i] = i;
-            points[4 * i + 1] = values[i];
-            points[4 * i + 2] = i + 1;
-            points[4 * i + 3] = values[i + 1];
-        }
-
-        final int offset = 4 * from;
-        final int count = 2 * (to - from);
-
-        matrix.mapPoints(pathsPointsTransformed, offset, points, offset, count);
-
-        canvas.drawLines(pathsPointsTransformed, offset, 2 * count, pathPaint);
-    }
-
-
-    private void drawSelectedPoints(Canvas canvas) {
-        if (selectedPointX == -1) {
-            return;
-        }
-
-        for (int l = 0, size = chart.sources.size(); l < size; l++) {
-            final float state = sourcesStates[l].get();
-            final Source source = chart.sources.get(l);
-            if (state == 0f) {
-                continue; // Ignoring invisible sources
-            }
-
-            pathPaint.setColor(source.color);
-            pathPaint.setAlpha(toAlpha(state));
-            // Point's alpha should change much slower than main path
-            pointPaint.setAlpha(toAlpha((float) Math.sqrt(Math.sqrt(state))));
-
-            float posX = ChartMath.mapX(matrix, selectedPointX);
-            float posY = ChartMath.mapY(matrix, source.y[selectedPointX]);
-
-            canvas.drawCircle(posX, posY, pointRadius, pointPaint);
-            canvas.drawCircle(posX, posY, pointRadius, pathPaint);
-        }
-    }
-
-
-    float dpToPx(float value) {
-        return TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, value, getResources().getDisplayMetrics());
-    }
-
-    static int toAlpha(float alpha) {
-        return Math.round(255 * alpha);
+        painter.draw(canvas, matrix, from, to, sourcesStatesValues, selectedPointX, simplified);
     }
 
 }

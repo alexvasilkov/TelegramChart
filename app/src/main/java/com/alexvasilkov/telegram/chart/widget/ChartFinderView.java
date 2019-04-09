@@ -16,6 +16,7 @@ import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
 import com.alexvasilkov.telegram.chart.utils.TimeInterval;
+import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
 import java.util.Calendar;
 
@@ -25,18 +26,18 @@ public class ChartFinderView extends BaseChartView {
     private static final int HANDLE_RIGHT = 1;
     private static final int HANDLE_BOTH = 0;
 
-    private final float frameXWidth = dpToPx(4);
-    private final float frameYWidth = dpToPx(1);
-    private final float handleTouchOffset = dpToPx(20);
-    private final float handlesMinDistance = dpToPx(20);
+    private final float frameXWidth = ChartStyle.dpToPx(getContext(), 4f);
+    private final float frameYWidth = ChartStyle.dpToPx(getContext(), 1f);
+    private final float handleTouchOffset = ChartStyle.dpToPx(getContext(), 20f);
+    private final float handlesMinDistance = ChartStyle.dpToPx(getContext(), 20f);
 
     private final Range handleRange = new Range();
     private final Range handleRangeStart = new Range();
     private final Range handleRangeEnd = new Range();
     private final AnimatedState handleState = new AnimatedState();
 
-    private final Paint foregroundPaint = new Paint(PAINT_FLAGS);
-    private final Paint framePaint = new Paint(PAINT_FLAGS);
+    private final Paint foregroundPaint = new Paint(ChartStyle.PAINT_FLAGS);
+    private final Paint framePaint = new Paint(ChartStyle.PAINT_FLAGS);
     private Integer selectedHandle; // One of HANDLE_* values
     private boolean firstScrollEvent;
 
@@ -79,7 +80,8 @@ public class ChartFinderView extends BaseChartView {
         gestureDetector = new GestureDetector(context, listener);
         gestureDetector.setIsLongpressEnabled(false);
 
-        setInsets(0, (int) dpToPx(4f), 0, (int) dpToPx(4f));
+        final int inset = (int) ChartStyle.dpToPx(getContext(), 4f);
+        setInsets(0, inset, 0, inset);
         useSimplifiedDrawing(true); // Optimizing preview rendering
     }
 

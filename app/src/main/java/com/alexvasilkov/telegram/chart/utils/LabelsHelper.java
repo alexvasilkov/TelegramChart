@@ -17,7 +17,7 @@ public class LabelsHelper {
         return maxIntervals;
     }
 
-    public int getFitIntervals(float size) {
+    private int getFitIntervals(float size) {
         // Computing number of whole intervals fitting into single screen
         return (int) Math.floor((size - 1) / Math.ceil((size - 1) / maxIntervals));
     }
