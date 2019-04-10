@@ -7,9 +7,9 @@ public class Chart {
     public final int id;
     public final Type type;
     public final long[] x;
-    public final List<Source> sources;
+    public final Source[] sources;
 
-    public Chart(int id, Type type, long[] x, List<Source> sources) {
+    public Chart(int id, Type type, long[] x, Source[] sources) {
         this.id = id;
         this.type = type;
         this.x = x;
@@ -29,7 +29,7 @@ public class Chart {
     }
 
     public enum Type {
-        LINES, TWO_LINES, BARS, AREA
+        LINES, LINES_INDEPENDENT, BARS, AREA
     }
 
 }

@@ -19,7 +19,6 @@ import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
 import java.text.NumberFormat;
-import java.util.List;
 
 class ChartsAdapter {
 
@@ -50,15 +49,15 @@ class ChartsAdapter {
     }
 
     private static void showSources(
-            List<Source> sources, ViewGroup sourcesGroup, ChartFinderView chartFinderView) {
+            Source[] sources, ViewGroup sourcesGroup, ChartFinderView chartFinderView) {
         sourcesGroup.removeAllViews();
 
         if (sources == null) {
             return;
         }
 
-        for (int i = 0, size = sources.size(); i < size; i++) {
-            final Source source = sources.get(i);
+        for (int i = 0, size = sources.length; i < size; i++) {
+            final Source source = sources[i];
             final int pos = i;
 
             final CheckBox check = (CheckBox) LayoutInflater.from(sourcesGroup.getContext())

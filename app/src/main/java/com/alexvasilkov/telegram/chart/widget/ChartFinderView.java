@@ -26,7 +26,7 @@ public class ChartFinderView extends BaseChartView {
     private static final int HANDLE_RIGHT = 1;
     private static final int HANDLE_BOTH = 0;
 
-    private final float frameXWidth = ChartStyle.dpToPx(getContext(), 4f);
+    private final float frameXWidth = ChartStyle.dpToPx(getContext(), 8f);
     private final float frameYWidth = ChartStyle.dpToPx(getContext(), 1f);
     private final float handleTouchOffset = ChartStyle.dpToPx(getContext(), 20f);
     private final float handlesMinDistance = ChartStyle.dpToPx(getContext(), 20f);
@@ -155,6 +155,7 @@ public class ChartFinderView extends BaseChartView {
 
                 // Optimizing chart drawing while being dragged
                 chartView.useSimplifiedDrawing(true);
+                useSimplifiedDrawing(true);
             }
         }
 
@@ -168,7 +169,9 @@ public class ChartFinderView extends BaseChartView {
         }
 
         selectedHandle = null;
+
         chartView.useSimplifiedDrawing(false);
+        useSimplifiedDrawing(false);
     }
 
     private boolean onScrollEvent(float distanceX) {
@@ -269,6 +272,8 @@ public class ChartFinderView extends BaseChartView {
         handleState.setTo(0f);
         handleState.animateTo(1f);
         requestAnimation();
+
+        chartView.useSimplifiedDrawing(true);
     }
 
     private void setInitialHandle() {
@@ -333,6 +338,10 @@ public class ChartFinderView extends BaseChartView {
         if (!handleState.isFinished()) {
             handleState.update(now);
             handleRange.interpolate(handleRangeStart, handleRangeEnd, handleState.get());
+
+            if (handleState.isFinished()) {
+                chartView.useSimplifiedDrawing(false);
+            }
         }
     }
 

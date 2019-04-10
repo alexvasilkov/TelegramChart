@@ -62,7 +62,6 @@
         <item name="chart_guidesWidth">1dp</item>
         <item name="chart_labelsColor">@color/chart_labels</item>
         <item name="chart_labelsDotColor">@color/chart_guides</item>
-        <item name="chart_labelsStrokeColor">@color/background</item>
         <item name="chart_labelsTextSize">12sp</item>
         <item name="chart_lineWidth">1.5dp</item>
         <item name="chart_pointColor">@color/background</item>

@@ -32,7 +32,7 @@ abstract class BaseChartView extends View {
 
     private AnimatedState[] sourcesStates;
     private boolean[] sourcesVisibility;
-    private float[] sourcesStatesValues;
+    float[] sourcesStatesValues;
 
     final Range xRange = new Range();
     final Range xRangeExt = new Range();
@@ -60,7 +60,7 @@ abstract class BaseChartView extends View {
         super(context, attrs);
 
         chartStyle = new ChartStyle(context, attrs);
-        animator = new ChartAnimator(this, this::onAnimationStep);
+        animator = new ChartAnimator(this, this::onAnimationStepInternal);
 
         setWillNotDraw(false);
     }
@@ -124,7 +124,7 @@ abstract class BaseChartView extends View {
 
         chartRange.set(0, newChart.x.length - 1);
 
-        final int sourcesCount = newChart.sources.size();
+        final int sourcesCount = newChart.sources.length;
         sourcesStates = new AnimatedState[sourcesCount];
         sourcesStatesValues = new float[sourcesCount];
         sourcesVisibility = new boolean[sourcesCount];
@@ -222,7 +222,7 @@ abstract class BaseChartView extends View {
     void doOnReady() {
         notifyRangeSet();
 
-        boolean animationNeeded = onAnimationStep();
+        boolean animationNeeded = onAnimationStepInternal();
         if (animationNeeded) {
             animator.start();
         }
@@ -297,6 +297,10 @@ abstract class BaseChartView extends View {
         yRangeEnd.set(fromY, toY);
     }
 
+    private boolean onAnimationStepInternal() {
+        return isAnimating = onAnimationStep();
+    }
+
     boolean onAnimationStep() {
         onUpdateChartState(AnimatedState.now());
 
@@ -305,9 +309,6 @@ abstract class BaseChartView extends View {
         for (AnimatedState state : sourcesStates) {
             result |= !state.isFinished();
         }
-
-        // We'll optimizing path drawing if animating, see onDraw method.
-        isAnimating = result;
 
         return result;
     }

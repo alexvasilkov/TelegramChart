@@ -33,6 +33,7 @@ public class ChartView extends BaseChartView {
 
     private final float xLabelPadding;
     private final float yLabelMarginBottom;
+    private final float yLabelMarginSide;
 
     private YGuides yGuides;
     private final List<YGuides> yGuidesOld = new ArrayList<>();
@@ -42,13 +43,14 @@ public class ChartView extends BaseChartView {
     final LabelsHelper xLabelsHelper = new LabelsHelper();
     private float xLabelsLevel;
 
+    private final int labelMaxAlpha;
     private final Paint xLabelPaint = new Paint(ChartStyle.PAINT_FLAGS);
     private final Paint xLabelDotPaint = new Paint(ChartStyle.PAINT_FLAGS);
 
     private final Paint yGuidesPaint = new Paint(ChartStyle.PAINT_FLAGS);
     private final int yGuidesMaxAlpha;
+
     private final Paint yLabelPaint = new Paint(ChartStyle.PAINT_FLAGS);
-    private final Paint yLabelStrokePaint = new Paint(ChartStyle.PAINT_FLAGS);
 
     private Formatter xLabelFormatter;
     private Formatter yLabelFormatter;
@@ -69,11 +71,10 @@ public class ChartView extends BaseChartView {
 
         xLabelPadding = ChartStyle.dpToPx(context, 10f);
         yLabelMarginBottom = ChartStyle.dpToPx(context, 5f);
+        yLabelMarginSide = ChartStyle.dpToPx(context, 2f);
 
         float labelsSize = ChartStyle.dpToPx(context, 12f);
         int labelsColor = Color.DKGRAY;
-        int labelsStrokeColor = Color.TRANSPARENT;
-        float labelsStrokeWidth = ChartStyle.dpToPx(context, 2f);
         int labelsDotColor = Color.DKGRAY;
         float guidesWidth = ChartStyle.dpToPx(context, 1f);
         int guidesColor = Color.LTGRAY;
@@ -82,14 +83,13 @@ public class ChartView extends BaseChartView {
         TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.ChartView);
         labelsSize = arr.getDimension(R.styleable.ChartView_chart_labelsTextSize, labelsSize);
         labelsColor = arr.getColor(R.styleable.ChartView_chart_labelsColor, labelsColor);
-        labelsStrokeColor =
-                arr.getColor(R.styleable.ChartView_chart_labelsStrokeColor, labelsStrokeColor);
         labelsDotColor = arr.getColor(R.styleable.ChartView_chart_labelsDotColor, labelsDotColor);
         guidesWidth = arr.getDimension(R.styleable.ChartView_chart_guidesWidth, guidesWidth);
         guidesColor = arr.getColor(R.styleable.ChartView_chart_guidesColor, guidesColor);
         yGuidesCount = arr.getInt(R.styleable.ChartView_chart_guidesNumber, yGuidesCountDefault);
         arr.recycle();
 
+        labelMaxAlpha = Color.alpha(labelsColor);
         xLabelPaint.setTextSize(labelsSize);
         xLabelPaint.setColor(labelsColor);
 
@@ -99,16 +99,10 @@ public class ChartView extends BaseChartView {
 
         yGuidesPaint.setStrokeWidth(guidesWidth);
         yGuidesPaint.setColor(guidesColor);
-
         yGuidesMaxAlpha = Color.alpha(guidesColor);
 
         yLabelPaint.setTextSize(labelsSize);
         yLabelPaint.setColor(labelsColor);
-
-        yLabelStrokePaint.set(yLabelPaint);
-        yLabelStrokePaint.setStyle(Paint.Style.STROKE);
-        yLabelStrokePaint.setStrokeWidth(labelsStrokeWidth);
-        yLabelStrokePaint.setColor(labelsStrokeColor);
 
         topInset = (int) (labelsSize + yLabelMarginBottom);
         int bottomInset = (int) (1.33f * labelsSize);
@@ -232,12 +226,21 @@ public class ChartView extends BaseChartView {
             }
 
             // Preparing new Y guides
-            yGuides = new YGuides(yGuidesCount, hasVisibleSources());
+            final boolean hasIndependentSources = painter.hasIndependentSources();
+            final int independentSources = hasIndependentSources ? chart.sources.length : 1;
+
+            yGuides = new YGuides(yGuidesCount, independentSources, hasVisibleSources());
+
             for (int i = 0; i < yGuidesCount; i++) {
                 final int value = (int) (fromY + (toY - fromY) * i / (yGuidesCount - 1));
                 yGuides.orig[i] = value;
-                yGuides.titles[i] = yLabelFormatter == null
-                        ? String.valueOf(value) : yLabelFormatter.format(value);
+
+                for (int s = 0; s < independentSources; s++) {
+                    int scaledValue = Math.round(value / painter.getSourcesScales()[s]);
+
+                    yGuides.titles[s][i] = yLabelFormatter == null
+                            ? String.valueOf(scaledValue) : yLabelFormatter.format(scaledValue);
+                }
             }
 
             if (animate) {
@@ -479,9 +482,9 @@ public class ChartView extends BaseChartView {
 
         // Drawing old and current Y labels, drawing X labels
         for (YGuides guides : yGuidesOld) {
-            drawYLabels(canvas, guides, pos.left);
+            drawYLabels(canvas, guides, pos.left, pos.right);
         }
-        drawYLabels(canvas, yGuides, pos.left);
+        drawYLabels(canvas, yGuides, pos.left, pos.right);
 
         drawXLabels(canvas, pos.left, pos.right);
 
@@ -504,7 +507,7 @@ public class ChartView extends BaseChartView {
     }
 
     private void drawYGuides(Canvas canvas, YGuides guides, float left, float right) {
-        yGuidesPaint.setAlpha((int) (yGuidesMaxAlpha * guides.state.get()));
+        yGuidesPaint.setAlpha(Math.round(yGuidesMaxAlpha * guides.state.get()));
 
         for (int i = 0, size = guides.size(); i < size; i++) {
             final float posY = guides.transformed[i];
@@ -512,19 +515,55 @@ public class ChartView extends BaseChartView {
         }
     }
 
-    private void drawYLabels(Canvas canvas, YGuides guides, float left) {
+    private void drawYLabels(Canvas canvas, YGuides guides, int left, int right) {
         if (!guides.showTitles) {
             return;
         }
-        yLabelStrokePaint.setAlpha(toAlpha(guides.state.get()));
-        yLabelPaint.setAlpha(toAlpha(guides.state.get()));
 
-        for (int i = 0, size = guides.size(); i < size; i++) {
-            final float posY = guides.transformed[i] - yLabelMarginBottom;
-            canvas.drawText(guides.titles[i], left, posY, yLabelStrokePaint);
-            canvas.drawText(guides.titles[i], left, posY, yLabelPaint);
+        final boolean showTwoLabels = guides.titles.length > 1;
+        final float alpha = guides.state.get();
+
+        if (showTwoLabels) {
+            // Drawing separate labels on the left and right sides
+            drawYLabels(
+                    canvas, guides.titles[0], chart.sources[0].color,
+                    Math.round(255 * alpha * sourcesStatesValues[0]), Paint.Align.LEFT,
+                    left + yLabelMarginSide, guides.transformed
+            );
+            drawYLabels(
+                    canvas, guides.titles[1], chart.sources[1].color,
+                    Math.round(255 * alpha * sourcesStatesValues[1]), Paint.Align.RIGHT,
+                    right - yLabelMarginSide, guides.transformed
+            );
+        } else {
+            // Drawing regular labels on the left side
+            drawYLabels(
+                    canvas, guides.titles[0],
+                    yLabelPaint.getColor(), Math.round(labelMaxAlpha * alpha), Paint.Align.LEFT,
+                    left + yLabelMarginSide, guides.transformed
+            );
         }
     }
+
+    private void drawYLabels(
+            Canvas canvas, String[] titles,
+            int color, int alpha, Paint.Align align,
+            float posX, float[] posY) {
+
+        if (alpha == 0) {
+            return;
+        }
+
+        yLabelPaint.setTextAlign(align);
+        yLabelPaint.setColor(color);
+        yLabelPaint.setAlpha(alpha);
+
+        for (int i = 0, size = titles.length; i < size; i++) {
+            final float posYShifted = posY[i] - yLabelMarginBottom;
+            canvas.drawText(titles[i], posX, posYShifted, yLabelPaint);
+        }
+    }
+
 
     private void drawXLabels(Canvas canvas, float left, float right) {
         final int fromExtX = (int) Math.ceil(xRangeExt.from);
@@ -556,7 +595,7 @@ public class ChartView extends BaseChartView {
         if (left - 0.5f < dotPosX && dotPosX < right + 0.5f) {
             final float dotPosY = yGuides.transformed[0];
 
-            xLabelDotPaint.setAlpha((int) (yGuidesMaxAlpha * alpha));
+            xLabelDotPaint.setAlpha(Math.round(yGuidesMaxAlpha * alpha));
             canvas.drawPoint(dotPosX, dotPosY, xLabelDotPaint);
         }
     }
@@ -604,7 +643,7 @@ public class ChartView extends BaseChartView {
                 * Math.max(0f, edgeState)
                 * Math.max(0f, Math.min(stackState * stackState, 1f));
 
-        xLabelPaint.setAlpha(toAlpha(alpha));
+        xLabelPaint.setAlpha(Math.round(labelMaxAlpha * alpha));
         canvas.drawText(label.title, labelPosXShifted, labelPosY, xLabelPaint);
     }
 
@@ -617,10 +656,6 @@ public class ChartView extends BaseChartView {
             }
         }
         return -1;
-    }
-
-    static int toAlpha(float alpha) {
-        return Math.round(255 * alpha);
     }
 
 
@@ -638,16 +673,16 @@ public class ChartView extends BaseChartView {
     }
 
     private static class YGuides {
-        final String[] titles;
+        final String[][] titles;
         final float[] orig;
         final float[] transformed;
         final boolean showTitles;
         final AnimatedState state = new AnimatedState();
 
-        YGuides(int size, boolean showTitles) {
+        YGuides(int size, int sources, boolean showTitles) {
             orig = new float[size];
             transformed = new float[size];
-            titles = new String[size];
+            titles = new String[sources][size];
             this.showTitles = showTitles;
         }
 
@@ -680,7 +715,7 @@ public class ChartView extends BaseChartView {
         private void bind(Chart chart, boolean[] visibilities, int index,
                 int maxWidth, int maxHeight, boolean animate) {
             if (holder == null) {
-                holder = createView(chart.sources.size());
+                holder = createView(chart.sources.length);
             }
             bindView(holder, chart, visibilities, index, animate);
 

@@ -12,7 +12,6 @@
     <declare-styleable name="ChartView">
         <attr name="chart_labelsTextSize" format="reference|dimension" />
         <attr name="chart_labelsColor" format="reference|color" />
-        <attr name="chart_labelsStrokeColor" format="reference|color" />
         <attr name="chart_labelsDotColor" format="reference|color" />
         <attr name="chart_guidesColor" format="reference|color" />
         <attr name="chart_guidesWidth" format="reference|dimension" />

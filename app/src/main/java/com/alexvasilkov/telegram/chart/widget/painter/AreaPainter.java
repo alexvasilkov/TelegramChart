@@ -99,7 +99,7 @@ class AreaPainter extends Painter {
             int to,
             float[] sourcesStates
     ) {
-        final int sourcesCount = chart.sources.size();
+        final int sourcesCount = chart.sources.length;
 
         float maxState = 0f;
         for (int i = 0; i < sourcesCount; i++) {
@@ -117,7 +117,7 @@ class AreaPainter extends Painter {
             float sum = 0f;
 
             for (int s = 0; s < sourcesCount; s++) {
-                sum += chart.sources.get(s).y[i] * sourcesStates[s];
+                sum += chart.sources[s].y[i] * sourcesStates[s];
             }
 
             scales[i] = total / sum;
@@ -127,7 +127,7 @@ class AreaPainter extends Painter {
         Arrays.fill(sums, total);
 
         for (int s = sourcesCount - 1; s >= 0; s--) {
-            final Source source = chart.sources.get(s);
+            final Source source = chart.sources[s];
             final float state = sourcesStates[s];
 
             if (state == 0f) {

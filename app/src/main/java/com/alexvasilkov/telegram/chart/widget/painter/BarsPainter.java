@@ -42,7 +42,7 @@ class BarsPainter extends Painter {
     public void calculateYRange(Range yRange, int from, int to, boolean[] sourcesStates) {
         // Calculating min and max Y values sums across all visible sources
 
-        final int sourcesCount = chart.sources.size();
+        final int sourcesCount = chart.sources.length;
 
         final int minY = 0; // Always starting from 0
         int maxY = Integer.MIN_VALUE;
@@ -52,7 +52,7 @@ class BarsPainter extends Painter {
 
             for (int s = 0; s < sourcesCount; s++) {
                 if (sourcesStates[s]) {
-                    sum += chart.sources.get(s).y[i];
+                    sum += chart.sources[s].y[i];
                 }
             }
 
@@ -85,9 +85,9 @@ class BarsPainter extends Painter {
         final float[] pointsTrans = pathsPointsTransformed;
         Arrays.fill(sums, 0f);
 
-        for (int s = 0, size = chart.sources.size(); s < size; s++) {
+        for (int s = 0, size = chart.sources.length; s < size; s++) {
             final float state = sourcesStates[s];
-            final Source source = chart.sources.get(s);
+            final Source source = chart.sources[s];
             if (state == 0f) {
                 continue; // Ignoring invisible sources
             }

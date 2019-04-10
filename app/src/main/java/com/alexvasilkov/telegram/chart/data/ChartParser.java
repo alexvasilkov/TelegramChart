@@ -73,13 +73,14 @@ class ChartParser {
             sources.add(new Source(name, color, yValues));
         }
 
-        return new Chart(id, parseType(type, yScaled), xValues, sources);
+        final Source[] sourcesArr = sources.toArray(new Source[0]);
+        return new Chart(id, parseType(type, yScaled), xValues, sourcesArr);
     }
 
     private static Chart.Type parseType(String type, boolean yScaled) {
         switch (type) {
             case "line":
-                return yScaled ? Chart.Type.TWO_LINES : Chart.Type.LINES;
+                return yScaled ? Chart.Type.LINES_INDEPENDENT : Chart.Type.LINES;
             case "bar":
                 return Chart.Type.BARS;
             case "area":

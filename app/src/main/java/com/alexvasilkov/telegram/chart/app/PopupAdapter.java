@@ -37,10 +37,10 @@ class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
 
         holder.title.setText(formatPopupDate(chart.x[index]));
 
-        for (int i = 0, size = chart.sources.size(); i < size; i++) {
+        for (int i = 0, size = chart.sources.length; i < size; i++) {
             final TextView text = holder.items[i];
             final ObjectAnimator anim = holder.itemsAnim[i];
-            final Source source = chart.sources.get(i);
+            final Source source = chart.sources[i];
 
             text.setTextColor(source.color);
             text.setText(source.y[index] + "\n" + source.name);
