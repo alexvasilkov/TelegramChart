@@ -83,7 +83,7 @@ class ChartParser {
             case "bar":
                 return Chart.Type.BARS;
             case "area":
-                return Chart.Type.PERCENTAGE;
+                return Chart.Type.AREA;
         }
         throw new IllegalArgumentException("Unknown type: " + type);
     }

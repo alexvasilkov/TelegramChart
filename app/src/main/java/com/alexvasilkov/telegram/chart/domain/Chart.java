@@ -29,7 +29,7 @@ public class Chart {
     }
 
     public enum Type {
-        LINES, TWO_LINES, BARS, PERCENTAGE
+        LINES, TWO_LINES, BARS, AREA
     }
 
 }

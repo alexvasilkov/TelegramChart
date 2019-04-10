@@ -3,6 +3,7 @@ package com.alexvasilkov.telegram.chart.widget.painter;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Interpolator;
 
@@ -11,16 +12,15 @@ import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.ColorUtils;
 import com.alexvasilkov.telegram.chart.utils.Range;
-import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
 import java.util.Arrays;
 
-public class BarsPainter extends Painter {
+class BarsPainter extends Painter {
 
     private static final Interpolator INTERPOLATOR = new AccelerateInterpolator(0.75f);
     private static final float SELECTION_BRIGHTNESS_AMOUNT = 0.25f;
 
-    private final Paint barPaint = new Paint(ChartStyle.PAINT_FLAGS);
+    private final Paint barPaint = new Paint(); // No anti-aliasing is needed
 
     private float[] pathsPoints;
     private float[] pathsPointsTransformed;
@@ -44,7 +44,7 @@ public class BarsPainter extends Painter {
 
         final int sourcesCount = chart.sources.size();
 
-        int minY = Integer.MAX_VALUE;
+        final int minY = 0; // Always starting from 0
         int maxY = Integer.MIN_VALUE;
 
         for (int i = from; i <= to; i++) {
@@ -56,13 +56,9 @@ public class BarsPainter extends Painter {
                 }
             }
 
-            minY = minY > sum ? sum : minY;
             maxY = maxY < sum ? sum : maxY;
         }
 
-        if (minY == Integer.MAX_VALUE) {
-            minY = 0;
-        }
         if (maxY <= minY) {
             maxY = minY + 1;
         }
@@ -73,6 +69,7 @@ public class BarsPainter extends Painter {
     @Override
     public void draw(
             Canvas canvas,
+            Rect chartPos,
             Matrix matrix,
             int from,
             int to,
@@ -82,7 +79,7 @@ public class BarsPainter extends Painter {
     ) {
 
         final float barWidth = Math.abs(ChartMath.mapX(matrix, 1f) - ChartMath.mapX(matrix, 0f));
-        barPaint.setStrokeWidth((int) Math.ceil(barWidth + 0.5f)); // Dealing with rounding issues
+        barPaint.setStrokeWidth(barWidth + 1.1f); // Dealing with rounding issues
 
         final float[] points = pathsPoints;
         final float[] pointsTrans = pathsPointsTransformed;

@@ -13,10 +13,10 @@
     <color name="text_secondary">#99222222</color>
     <color name="text_highlighted">#3896d4</color>
 
-    <color name="chart_guides">@color/divider</color>
-    <color name="chart_labels">#96A2AA</color>
+    <color name="chart_guides">#1A182D3B</color>
+    <color name="chart_labels">#8E8E93</color>
 
-    <color name="finder_foreground">#B3F0F5F7</color>
+    <color name="finder_foreground">#8086A9C4</color>
     <color name="finder_frame">#456096BF</color>
 
     <color name="popup_stroke">#E4E4E4</color>

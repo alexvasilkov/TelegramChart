@@ -79,8 +79,6 @@ public class ChartFinderView extends BaseChartView {
         };
         gestureDetector = new GestureDetector(context, listener);
         gestureDetector.setIsLongpressEnabled(false);
-
-        useSimplifiedDrawing(true); // Optimizing preview rendering
     }
 
     public void attachTo(ChartView chartView) {

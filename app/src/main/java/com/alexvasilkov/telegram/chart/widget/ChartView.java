@@ -46,6 +46,7 @@ public class ChartView extends BaseChartView {
     private final Paint xLabelDotPaint = new Paint(ChartStyle.PAINT_FLAGS);
 
     private final Paint yGuidesPaint = new Paint(ChartStyle.PAINT_FLAGS);
+    private final int yGuidesMaxAlpha;
     private final Paint yLabelPaint = new Paint(ChartStyle.PAINT_FLAGS);
     private final Paint yLabelStrokePaint = new Paint(ChartStyle.PAINT_FLAGS);
 
@@ -98,6 +99,8 @@ public class ChartView extends BaseChartView {
 
         yGuidesPaint.setStrokeWidth(guidesWidth);
         yGuidesPaint.setColor(guidesColor);
+
+        yGuidesMaxAlpha = Color.alpha(guidesColor);
 
         yLabelPaint.setTextSize(labelsSize);
         yLabelPaint.setColor(labelsColor);
@@ -185,15 +188,12 @@ public class ChartView extends BaseChartView {
     protected void onRangeSet(
             float fromX, float toX, float fromY, float toY, boolean animateX, boolean animateY) {
 
-        // Including zero value
-        fromY = fromY > 0f ? 0f : fromY;
-        toY = toY < 0f ? 0f : toY;
-
         // Adjusting Y range to better fit chart height + extra inset on top.
         // Final range will be divisible by the number of intervals, to have integer guide values.
         final int yIntervals = yGuidesCount - 1;
         final int chartHeight = getChartPosition().height();
-        final float minToY = toY - (toY - fromY) * topInset / (chartHeight + topInset);
+        final float minToY = painter.useExactRange()
+                ? toY : toY - (toY - fromY) * topInset / (chartHeight + topInset);
 
         // Rounding guides to nearest 10^x value
         final float stepSize = (minToY - fromY) / yIntervals;
@@ -463,8 +463,9 @@ public class ChartView extends BaseChartView {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+
         if (!isReady()) {
-            super.onDraw(canvas);
             return;
         }
 
@@ -475,9 +476,6 @@ public class ChartView extends BaseChartView {
             drawYGuides(canvas, guides, pos.left, pos.right);
         }
         drawYGuides(canvas, yGuides, pos.left, pos.right);
-
-        // Drawing chart
-        super.onDraw(canvas);
 
         // Drawing old and current Y labels, drawing X labels
         for (YGuides guides : yGuidesOld) {
@@ -506,7 +504,7 @@ public class ChartView extends BaseChartView {
     }
 
     private void drawYGuides(Canvas canvas, YGuides guides, float left, float right) {
-        yGuidesPaint.setAlpha(toAlpha(guides.state.get()));
+        yGuidesPaint.setAlpha((int) (yGuidesMaxAlpha * guides.state.get()));
 
         for (int i = 0, size = guides.size(); i < size; i++) {
             final float posY = guides.transformed[i];
@@ -558,7 +556,7 @@ public class ChartView extends BaseChartView {
         if (left - 0.5f < dotPosX && dotPosX < right + 0.5f) {
             final float dotPosY = yGuides.transformed[0];
 
-            xLabelDotPaint.setAlpha(toAlpha(alpha));
+            xLabelDotPaint.setAlpha((int) (yGuidesMaxAlpha * alpha));
             canvas.drawPoint(dotPosX, dotPosY, xLabelDotPaint);
         }
     }

@@ -68,16 +68,16 @@
         <item name="chart_pointColor">@color/background</item>
         <item name="chart_pointRadius">4dp</item>
         <item name="chart_selectionColor">@color/chart_guides</item>
-        <item name="chart_selectionWidth">2dp</item>
+        <item name="chart_selectionWidth">1.5dp</item>
     </style>
 
     <style name="Chart.Finder">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">40dp</item>
         <item name="android:paddingLeft">16dp</item>
-        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingTop">1dp</item>
         <item name="android:paddingRight">16dp</item>
-        <item name="android:paddingBottom">4dp</item>
+        <item name="android:paddingBottom">1dp</item>
 
         <item name="chart_foregroundColor">@color/finder_foreground</item>
         <item name="chart_frameColor">@color/finder_frame</item>

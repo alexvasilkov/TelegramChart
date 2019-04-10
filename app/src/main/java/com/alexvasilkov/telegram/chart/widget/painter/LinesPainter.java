@@ -4,6 +4,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.domain.Chart.Source;
@@ -11,10 +12,10 @@ import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
 import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
-public class LinesPainter extends Painter {
+class LinesPainter extends Painter {
 
     private final Paint pathPaint = new Paint(ChartStyle.PAINT_FLAGS);
-    private final Paint selectionPaint = new Paint(ChartStyle.PAINT_FLAGS);
+    private final Paint selectionPaint = new Paint();
     private final Paint pointPaint = new Paint(ChartStyle.PAINT_FLAGS);
     private float pointRadius;
 
@@ -86,6 +87,7 @@ public class LinesPainter extends Painter {
     @Override
     public void draw(
             Canvas canvas,
+            Rect chartPos,
             Matrix matrix,
             int from,
             int to,
@@ -94,10 +96,10 @@ public class LinesPainter extends Painter {
             boolean simplified
     ) {
 
-        // Drawing selected point if withing visible range
+        // Drawing selected point line if withing visible range
         if (from <= selected && selected <= to) {
             float posX = ChartMath.mapX(matrix, selected);
-            canvas.drawLine(posX, 0, posX, canvas.getHeight(), selectionPaint);
+            canvas.drawLine(posX, chartPos.top, posX, chartPos.bottom, selectionPaint);
         }
 
         for (int l = 0, size = chart.sources.size(); l < size; l++) {

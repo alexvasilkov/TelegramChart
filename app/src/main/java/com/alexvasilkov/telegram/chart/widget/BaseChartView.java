@@ -374,9 +374,17 @@ abstract class BaseChartView extends View {
 
         final int from = (int) Math.floor(xRangeExt.from);
         final int to = (int) Math.ceil(xRangeExt.to);
-        final boolean simplified = isAnimating || simplifiedDrawing;
 
-        painter.draw(canvas, matrix, from, to, sourcesStatesValues, selectedPointX, simplified);
+        painter.draw(
+                canvas,
+                getChartPosition(),
+                matrix,
+                from,
+                to,
+                sourcesStatesValues,
+                selectedPointX,
+                isAnimating || simplifiedDrawing
+        );
     }
 
 }
