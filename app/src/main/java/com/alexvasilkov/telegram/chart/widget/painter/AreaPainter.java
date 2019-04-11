@@ -156,7 +156,7 @@ class AreaPainter extends Painter {
                 sums[i] -= source.y[i] * state * scales[i];
                 minValue = minValue > sums[i] ? sums[i] : minValue;
             }
-            minValue = Math.max(0f, minValue - 1f);
+            minValue = Math.max(0f, minValue - 10f); // Few more pixels on bottom to prevent issues
 
             // Using maximum possible value for bottom line to avoid much overdraws
             pathFill.lineTo(to, minValue);
