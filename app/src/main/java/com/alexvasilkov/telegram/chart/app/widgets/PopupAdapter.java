@@ -1,4 +1,4 @@
-package com.alexvasilkov.telegram.chart.app;
+package com.alexvasilkov.telegram.chart.app.widgets;
 
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
@@ -14,13 +14,13 @@ import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
-class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
+public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
 
     private static final float MIN_VALUE_ALPHA = 0.33f;
 
     private final Context context;
 
-    PopupAdapter(Context context) {
+    public PopupAdapter(Context context) {
         this.context = context;
     }
 

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="150"
+    android:exitFadeDuration="150">
+
+    <item android:state_checked="true">
+        <shape>
+            <corners android:radius="18dp" />
+            <solid android:color="@android:color/black" />
+        </shape>
+    </item>
+
+    <item>
+        <shape>
+            <corners android:radius="18dp" />
+            <solid android:color="@android:color/transparent" />
+            <stroke
+                android:width="2dp"
+                android:color="@android:color/black" />
+        </shape>
+    </item>
+
+</selector>

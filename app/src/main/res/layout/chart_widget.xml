@@ -2,12 +2,14 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    style="@style/Chart.Layout">
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/chart_title"
         style="@style/Chart.Title"
-        tools:text="Followers" />
+        tools:text="Chart" />
 
     <com.alexvasilkov.telegram.chart.widget.ChartView
         android:id="@+id/chart_view"
@@ -17,17 +19,8 @@
         android:id="@+id/chart_finder_view"
         style="@style/Chart.Finder" />
 
-    <LinearLayout
+    <com.alexvasilkov.telegram.chart.app.widgets.FlowLineLayout
         android:id="@+id/chart_sources"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:clipToPadding="false"
-        android:divider="@drawable/divider_horizontal"
-        android:orientation="vertical"
-        android:paddingLeft="16dp"
-        android:showDividers="middle"
-        tools:ignore="RtlHardcoded,RtlSymmetry" />
+        style="@style/Chart.Sources" />
 
 </LinearLayout>

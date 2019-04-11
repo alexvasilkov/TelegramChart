@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <dimen name="source_checked_left">6dp</dimen>
+    <dimen name="source_checked_right">14dp</dimen>
+    <dimen name="source_unchecked_left">22dp</dimen>
+    <dimen name="source_unchecked_right">22dp</dimen>
+
+</resources>

@@ -11,6 +11,28 @@
         android:id="@+id/charts_list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical" />
+        android:orientation="vertical">
+
+        <com.alexvasilkov.telegram.chart.app.widgets.charts.FollowersWidget
+            android:id="@+id/chart_followers"
+            style="@style/Chart.Layout" />
+
+        <com.alexvasilkov.telegram.chart.app.widgets.charts.InteractionsWidget
+            android:id="@+id/chart_interactions"
+            style="@style/Chart.Layout" />
+
+        <com.alexvasilkov.telegram.chart.app.widgets.charts.MessagesWidget
+            android:id="@+id/chart_messages"
+            style="@style/Chart.Layout" />
+
+        <com.alexvasilkov.telegram.chart.app.widgets.charts.ViewsWidget
+            android:id="@+id/chart_views"
+            style="@style/Chart.Layout" />
+
+        <com.alexvasilkov.telegram.chart.app.widgets.charts.AppsWidget
+            android:id="@+id/chart_apps"
+            style="@style/Chart.Layout" />
+
+    </LinearLayout>
 
 </ScrollView>

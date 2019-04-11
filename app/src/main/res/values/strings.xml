@@ -4,7 +4,11 @@
 
     <string name="menu_night_mode">Toggle night mode</string>
 
-    <string name="charts_title">Charts</string>
-    <string name="chart_name">Chart #%d</string>
+    <string name="charts_title">Statistics</string>
+    <string name="chart_title_followers">Followers</string>
+    <string name="chart_title_interactions">Interactions</string>
+    <string name="chart_title_messages">Messages</string>
+    <string name="chart_title_views">Views</string>
+    <string name="chart_title_apps">Apps</string>
 
 </resources>
