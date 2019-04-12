@@ -11,7 +11,8 @@
         android:id="@+id/charts_list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingTop="24dp">
 
         <com.alexvasilkov.telegram.chart.app.widgets.charts.FollowersWidget
             android:id="@+id/chart_followers"

@@ -1,15 +1,17 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="AppTheme" parent="android:Theme.DeviceDefault.Light.DarkActionBar">
+    <style name="AppTheme" parent="android:Theme.DeviceDefault.Light">
         <item name="android:colorPrimary" tools:targetApi="21">@color/primary</item>
         <item name="android:colorPrimaryDark" tools:targetApi="21">@color/primaryDark</item>
         <item name="android:colorAccent" tools:targetApi="21">@color/accent</item>
 
-        <item name="android:navigationBarColor" tools:targetApi="21">@color/primaryDark</item>
+        <item name="android:statusBarColor" tools:targetApi="21">@color/status_bar</item>
+        <item name="android:navigationBarColor" tools:targetApi="21">@color/nav_bar</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="23">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
 
-        <item name="android:windowBackground">@color/window_background</item>
-        <item name="android:textColorPrimary">@color/text_primary</item>
-        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:windowBackground">@color/window</item>
+        <item name="android:textColorPrimary">@color/text</item>
         <item name="android:textColor">?android:textColorPrimary</item>
 
         <item name="android:actionBarStyle">@style/ActionBar</item>
@@ -17,14 +19,9 @@
 
     <style name="ActionBar" parent="android:Widget.DeviceDefault.ActionBar.Solid">
         <item name="android:displayOptions">none</item>
-        <item name="android:background">@color/primary</item>
-        <item name="android:titleTextStyle">@style/ActionBar.Title</item>
+        <item name="android:background">@color/action_bar</item>
+        <item name="android:contentInsetStart" tools:targetApi="21">16dp</item>
     </style>
-
-    <style name="ActionBar.Title" parent="android:TextAppearance.DeviceDefault.Widget.ActionBar.Title">
-        <item name="android:textColor">@android:color/white</item>
-    </style>
-
 
     <style name="Chart" />
 
@@ -36,15 +33,18 @@
         <item name="android:elevation" tools:targetApi="21">2dp</item>
     </style>
 
-    <style name="Chart.Title">
+    <style name="Chart.TitlesLayout">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginLeft">16dp</item>
         <item name="android:layout_marginTop">16dp</item>
         <item name="android:layout_marginRight">16dp</item>
         <item name="android:layout_marginBottom">4dp</item>
+    </style>
+    <style name="Chart.Title">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
         <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="android:textColor">@color/text_primary</item>
         <item name="android:textSize">16sp</item>
     </style>
 
@@ -56,6 +56,7 @@
         <item name="android:paddingTop">16dp</item>
         <item name="android:paddingBottom">16dp</item>
 
+        <item name="chart_backgroundHint">@color/background</item>
         <item name="chart_guidesColor">@color/chart_guides</item>
         <item name="chart_guidesNumber">6</item>
         <item name="chart_guidesWidth">1dp</item>
@@ -63,7 +64,6 @@
         <item name="chart_labelsDotColor">@color/chart_guides</item>
         <item name="chart_labelsTextSize">12sp</item>
         <item name="chart_lineWidth">1.5dp</item>
-        <item name="chart_pointColor">@color/background</item>
         <item name="chart_pointRadius">4dp</item>
         <item name="chart_selectionColor">@color/chart_guides</item>
         <item name="chart_selectionWidth">1.5dp</item>
@@ -77,6 +77,7 @@
         <item name="android:paddingRight">16dp</item>
         <item name="android:paddingBottom">1dp</item>
 
+        <item name="chart_backgroundHint">@color/background</item>
         <item name="chart_foregroundColor">@color/finder_foreground</item>
         <item name="chart_frameColor">@color/finder_frame</item>
         <item name="chart_lineWidth">1dp</item>

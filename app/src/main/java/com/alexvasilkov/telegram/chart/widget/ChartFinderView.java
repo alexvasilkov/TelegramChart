@@ -4,6 +4,9 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
@@ -26,10 +29,13 @@ public class ChartFinderView extends BaseChartView {
     private static final int HANDLE_RIGHT = 1;
     private static final int HANDLE_BOTH = 0;
 
-    private final float frameXWidth = ChartStyle.dpToPx(getContext(), 8f);
-    private final float frameYWidth = ChartStyle.dpToPx(getContext(), 1f);
+    private final float frameWidth = ChartStyle.dpToPx(getContext(), 10f);
     private final float handleTouchOffset = ChartStyle.dpToPx(getContext(), 20f);
     private final float handlesMinDistance = ChartStyle.dpToPx(getContext(), 20f);
+
+    private final Drawable cornersOverlay;
+    private final Drawable handleDrawable;
+    private final Drawable handleOverlayDrawable;
 
     private final Range handleRange = new Range();
     private final Range handleRangeStart = new Range();
@@ -37,7 +43,6 @@ public class ChartFinderView extends BaseChartView {
     private final AnimatedState handleState = new AnimatedState();
 
     private final Paint foregroundPaint = new Paint(ChartStyle.PAINT_FLAGS);
-    private final Paint framePaint = new Paint(ChartStyle.PAINT_FLAGS);
     private Integer selectedHandle; // One of HANDLE_* values
     private boolean firstScrollEvent;
 
@@ -46,6 +51,8 @@ public class ChartFinderView extends BaseChartView {
     private ChartView chartView;
 
     private TimeInterval timeInterval;
+    private boolean snapToTimeInterval;
+    private int initialTimeIntervals;
     private int minTimeIntervals;
     private int maxTimeIntervals;
     private final Calendar calendar = Calendar.getInstance();
@@ -61,10 +68,13 @@ public class ChartFinderView extends BaseChartView {
         arr.recycle();
 
         foregroundPaint.setStyle(Paint.Style.FILL);
-        foregroundPaint.setColor(foregroundColor);
 
-        framePaint.setStyle(Paint.Style.FILL);
-        framePaint.setColor(frameColor);
+        cornersOverlay = getResources().getDrawable(R.drawable.round_corners_overlay).mutate();
+
+        handleDrawable = getResources().getDrawable(R.drawable.handle).mutate();
+        handleOverlayDrawable = getResources().getDrawable(R.drawable.handle_overlay).mutate();
+
+        setColors(foregroundColor, frameColor, chartStyle.backgroundColorHint);
 
         final OnGestureListener listener = new SimpleOnGestureListener() {
             @Override
@@ -79,6 +89,14 @@ public class ChartFinderView extends BaseChartView {
         };
         gestureDetector = new GestureDetector(context, listener);
         gestureDetector.setIsLongpressEnabled(false);
+    }
+
+    public void setColors(int foreground, int frame, int background) {
+        foregroundPaint.setColor(foreground);
+        handleDrawable.setColorFilter(frame, PorterDuff.Mode.SRC_IN);
+        cornersOverlay.setColorFilter(background, PorterDuff.Mode.SRC_IN);
+
+        invalidate();
     }
 
     public void attachTo(ChartView chartView) {
@@ -101,10 +119,13 @@ public class ChartFinderView extends BaseChartView {
     }
 
 
-    public void setTimeIntervals(TimeInterval interval, int minIntervals, int maxIntervals) {
+    public void setTimeIntervals(
+            TimeInterval interval, int min, int max, int initial, boolean snap) {
         timeInterval = interval;
-        minTimeIntervals = minIntervals;
-        maxTimeIntervals = maxIntervals;
+        initialTimeIntervals = initial;
+        minTimeIntervals = min;
+        maxTimeIntervals = max;
+        snapToTimeInterval = snap;
     }
 
     @Override
@@ -163,7 +184,7 @@ public class ChartFinderView extends BaseChartView {
     }
 
     private void onUpOrCancelEvent() {
-        if (selectedHandle != null && timeInterval != null) {
+        if (selectedHandle != null && timeInterval != null && snapToTimeInterval) {
             snapToInterval(handleRange, handleRangeEnd, timeInterval, selectedHandle);
             animateHandle();
         }
@@ -281,8 +302,10 @@ public class ChartFinderView extends BaseChartView {
 
         if (timeInterval != null) {
             // It time interval is set we'll start with max possible range from right side
-            handleRange.from = handleRange.to - maxTimeIntervals * timeInterval.steps;
-            snapToInterval(handleRange, handleRange, timeInterval, HANDLE_BOTH);
+            handleRange.from = handleRange.to - initialTimeIntervals * timeInterval.steps;
+            if (snapToTimeInterval) {
+                snapToInterval(handleRange, handleRange, timeInterval, HANDLE_BOTH);
+            }
         }
     }
 
@@ -347,6 +370,16 @@ public class ChartFinderView extends BaseChartView {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        final Rect chartPos = getChartPosition();
+        final int left = chartPos.left;
+        final int right = chartPos.right;
+        final int top = chartPos.top;
+        final int bottom = chartPos.bottom;
+        final int topExtra = 0;
+        final int bottomExtra = getHeight();
+
+        canvas.clipRect(left, topExtra, right, bottomExtra);
+
         super.onDraw(canvas); // Drawing chart
 
         if (!isReady()) {
@@ -354,31 +387,26 @@ public class ChartFinderView extends BaseChartView {
         }
 
         // Drawing handle
-        final float leftPos = ChartMath.mapX(matrix, handleRange.from);
-        final float rightPos = ChartMath.mapX(matrix, handleRange.to);
+        final int leftPos = Math.round(ChartMath.mapX(matrix, handleRange.from));
+        final int rightPos = Math.round(ChartMath.mapX(matrix, handleRange.to));
 
         final float start = Math.max(0f, ChartMath.mapX(matrix, chartRange.from));
         final float end = Math.min(getWidth(), ChartMath.mapX(matrix, chartRange.to));
 
         // Foreground
-        // Left
-        canvas.drawRect(start, 0f, leftPos, getHeight(), foregroundPaint);
-        // Right
-        canvas.drawRect(rightPos, 0f, end, getHeight(), foregroundPaint);
+        canvas.drawRect(start, top, leftPos + frameWidth, bottom, foregroundPaint);
+        canvas.drawRect(rightPos - frameWidth, top, end, bottom, foregroundPaint);
 
-        // Frame
-        // Left
-        canvas.drawRect(leftPos, 0f, leftPos + frameXWidth, getHeight(), framePaint);
-        // Right
-        canvas.drawRect(rightPos - frameXWidth, 0f, rightPos, getHeight(), framePaint);
-        // Top
-        canvas.drawRect(
-                leftPos + frameXWidth, 0f,
-                rightPos - frameXWidth, frameYWidth, framePaint);
-        // Bottom
-        canvas.drawRect(
-                leftPos + frameXWidth, getHeight() - frameYWidth,
-                rightPos - frameXWidth, getHeight(), framePaint);
+        // Drawing fake round corners overlay
+        cornersOverlay.setBounds(left, top, right, bottom);
+        cornersOverlay.draw(canvas);
+
+        // Handle
+        handleDrawable.setBounds(leftPos, topExtra, rightPos, bottomExtra);
+        handleDrawable.draw(canvas);
+
+        handleOverlayDrawable.setBounds(leftPos, topExtra, rightPos, bottomExtra);
+        handleOverlayDrawable.draw(canvas);
     }
 
 }

@@ -2,24 +2,48 @@
 <resources>
 
     <color name="primary">#517DA2</color>
-    <color name="primaryDark">#426382</color>
-    <color name="accent">#7BC4FB</color>
+    <color name="primaryDark">#517DA2</color>
+    <color name="accent">#517DA2</color>
 
-    <color name="window_background">#F0F0F0</color>
+    <!-- Day (default) theme -->
+
+    <color name="status_bar">#FFFFFF</color>
+    <color name="action_bar">#FFFFFF</color>
+    <color name="nav_bar">#FFFFFF</color>
+
+    <color name="window">#F0F0F0</color>
     <color name="background">#FFFFFF</color>
-    <color name="divider">#F1F1F1</color>
 
-    <color name="text_primary">#000000</color>
-    <color name="text_secondary">#99222222</color>
-    <color name="text_highlighted">#3896d4</color>
+    <color name="text">#000000</color>
 
     <color name="chart_guides">#1A182D3B</color>
     <color name="chart_labels">#80252529</color>
+    <color name="chart_selection_mask">#80FFFFFF</color>
 
     <color name="finder_foreground">#99E3EFFA</color>
-    <color name="finder_frame">#806F899E</color>
+    <color name="finder_frame">#8086A9C4</color>
 
-    <color name="popup_stroke">#E4E4E4</color>
-    <color name="popup_background">#D4FFFFFF</color>
+    <color name="popup">#D4FFFFFF</color>
+
+
+    <!-- Night theme -->
+
+    <color name="status_bar_night">#242f3e</color>
+    <color name="action_bar_night">#242f3e</color>
+    <color name="nav_bar_night">#1b2433</color>
+
+    <color name="window_night">#1b2433</color>
+    <color name="background_night">#242f3e</color>
+
+    <color name="text_night">#FFFFFF</color>
+
+    <color name="chart_guides_night">#1AFFFFFF</color>
+    <color name="chart_labels_night">#80ECF2F8</color>
+    <color name="chart_selection_mask_night">#80242F3E</color>
+
+    <color name="finder_foreground_night">#99304259</color>
+    <color name="finder_frame_night">#806F899E</color>
+
+    <color name="popup_night">#DD1c2533</color>
 
 </resources>

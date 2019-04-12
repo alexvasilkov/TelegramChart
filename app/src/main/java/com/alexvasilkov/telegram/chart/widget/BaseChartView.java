@@ -6,7 +6,7 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.os.Build;
 import android.util.AttributeSet;
-import android.view.View;
+import android.widget.FrameLayout;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
@@ -15,7 +15,7 @@ import com.alexvasilkov.telegram.chart.utils.Range;
 import com.alexvasilkov.telegram.chart.widget.painter.Painter;
 import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
-abstract class BaseChartView extends View {
+abstract class BaseChartView extends FrameLayout {
 
     private final ChartAnimator animator;
 
@@ -24,7 +24,7 @@ abstract class BaseChartView extends View {
     private boolean isAnimating;
     private boolean simplifiedDrawing;
 
-    private ChartStyle chartStyle;
+    final ChartStyle chartStyle;
 
     private final Range pendingRange = new Range();
     private boolean pendingAnimateX;
@@ -55,6 +55,7 @@ abstract class BaseChartView extends View {
 
     private int selectedPointX = -1;
 
+    private OnRangeChangeListener xRangeListener;
 
     BaseChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -65,12 +66,23 @@ abstract class BaseChartView extends View {
         setWillNotDraw(false);
     }
 
+    public void setBaseColors(
+            boolean darken, int backgroundHint, int selection, int selectionMask) {
+        chartStyle.setColors(darken, backgroundHint, selection, selectionMask);
+        if (painter != null) {
+            painter.applyStyle(chartStyle);
+        }
+        invalidate();
+    }
 
     @SuppressWarnings("SameParameterValue")
     void setInsets(int left, int top, int right, int bottom) {
         insets.set(left, top, right, bottom);
     }
 
+    public void setXRangeListener(OnRangeChangeListener listener) {
+        xRangeListener = listener;
+    }
 
     @Override
     protected void onAttachedToWindow() {
@@ -120,7 +132,8 @@ abstract class BaseChartView extends View {
 
         // Setting new chart
         chart = newChart;
-        painter = Painter.create(chart, chartStyle);
+        painter = Painter.create(chart);
+        painter.applyStyle(chartStyle);
 
         chartRange.set(0, newChart.x.length - 1);
 
@@ -295,6 +308,10 @@ abstract class BaseChartView extends View {
         }
 
         yRangeEnd.set(fromY, toY);
+
+        if (xRangeListener != null) {
+            xRangeListener.onRangeChanged(xRangeEnd);
+        }
     }
 
     private boolean onAnimationStepInternal() {
@@ -386,6 +403,11 @@ abstract class BaseChartView extends View {
                 selectedPointX,
                 isAnimating || simplifiedDrawing
         );
+    }
+
+
+    public interface OnRangeChangeListener {
+        void onRangeChanged(Range range);
     }
 
 }

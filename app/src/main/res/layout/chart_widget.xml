@@ -2,14 +2,34 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
-    android:layout_height="match_parent"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/chart_title"
-        style="@style/Chart.Title"
-        tools:text="Chart" />
+    <LinearLayout
+        style="@style/Chart.TitlesLayout"
+        android:baselineAligned="true"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/chart_title"
+            style="@style/Chart.Title"
+            tools:text="Chart" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/chart_range"
+            style="@style/Chart.Title"
+            android:layout_marginLeft="8dp"
+            android:textSize="13sp"
+            tools:text="1 April 2019 - 31 April 2019"
+            tools:ignore="RtlHardcoded" />
+
+    </LinearLayout>
 
     <com.alexvasilkov.telegram.chart.widget.ChartView
         android:id="@+id/chart_view"

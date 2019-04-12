@@ -28,18 +28,19 @@ class AreaPainter extends Painter {
     private final float[] scales;
     private final float[] sums;
 
-    AreaPainter(Chart chart, ChartStyle style) {
+    AreaPainter(Chart chart) {
         super(chart);
 
         scales = new float[chart.x.length];
         sums = new float[chart.x.length];
 
         pathPaint.setStyle(Paint.Style.FILL);
-
-        applyStyle(style);
     }
 
-    private void applyStyle(ChartStyle style) {
+    @Override
+    public void applyStyle(ChartStyle style) {
+        super.applyStyle(style);
+
         selectionPaint.setStrokeWidth(style.selectionWidth);
         selectionPaint.setColor(style.selectionColor);
     }
@@ -166,7 +167,7 @@ class AreaPainter extends Painter {
 
             pathFill.transform(matrix);
 
-            pathPaint.setColor(source.color);
+            pathPaint.setColor(getSourceColor(s));
             canvas.drawPath(pathFill, pathPaint);
         }
     }

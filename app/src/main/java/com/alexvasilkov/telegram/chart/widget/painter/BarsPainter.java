@@ -12,15 +12,16 @@ import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.ColorUtils;
 import com.alexvasilkov.telegram.chart.utils.Range;
+import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
 import java.util.Arrays;
 
 class BarsPainter extends Painter {
 
     private static final Interpolator INTERPOLATOR = new AccelerateInterpolator(0.75f);
-    private static final float SELECTION_BRIGHTNESS_AMOUNT = 0.25f;
 
     private final Paint barPaint = new Paint(); // No anti-aliasing is needed
+    private int selectionMask;
 
     private float[] pathsPoints;
     private float[] pathsPointsTransformed;
@@ -36,6 +37,13 @@ class BarsPainter extends Painter {
 
 
         barPaint.setStyle(Paint.Style.STROKE);
+    }
+
+    @Override
+    public void applyStyle(ChartStyle style) {
+        super.applyStyle(style);
+
+        selectionMask = style.selectionMask;
     }
 
     @Override
@@ -105,8 +113,8 @@ class BarsPainter extends Painter {
             }
 
             // Bars should be dimmed down if particular bar is selected
-            barPaint.setColor(selected == -1 ? source.color
-                    : ColorUtils.changeBrightness(source.color, SELECTION_BRIGHTNESS_AMOUNT));
+            final int color = getSourceColor(s);
+            barPaint.setColor(selected == -1 ? color : ColorUtils.overlay(color, selectionMask));
 
             final int offset = 4 * from;
             final int count = 2 * (to - from + 1);
@@ -117,7 +125,7 @@ class BarsPainter extends Painter {
 
             // Drawing full-color bar, if selected
             if (from <= selected && selected <= to) {
-                barPaint.setColor(source.color);
+                barPaint.setColor(color);
                 canvas.drawLine(
                         pointsTrans[4 * selected],
                         pointsTrans[4 * selected + 1],

@@ -5,6 +5,7 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.utils.ColorUtils;
 import com.alexvasilkov.telegram.chart.utils.Range;
 import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
@@ -15,11 +16,17 @@ public abstract class Painter {
     final Chart chart;
     final float[] sourcesScales;
 
+    private boolean darken;
+
     Painter(Chart chart) {
         this.chart = chart;
 
         sourcesScales = new float[chart.sources.length];
         Arrays.fill(sourcesScales, 1f);
+    }
+
+    public void applyStyle(ChartStyle style) {
+        this.darken = style.darken;
     }
 
     /**
@@ -66,24 +73,28 @@ public abstract class Painter {
         return sourcesScales;
     }
 
+    int getSourceColor(int index) {
+        final int color = chart.sources[index].color;
+        return darken ? ColorUtils.darken(color) : color;
+    }
 
     static int toAlpha(float alpha) {
         return Math.round(255 * alpha);
     }
 
 
-    public static Painter create(Chart chart, ChartStyle style) {
+    public static Painter create(Chart chart) {
         switch (chart.type) {
             case LINES:
-                return new LinesPainter(chart, style);
+                return new LinesPainter(chart);
             case LINES_INDEPENDENT:
-                return new LinesPainter(chart, style, true);
+                return new LinesPainter(chart, true);
             case BARS:
                 return new BarsPainter(chart);
             case AREA:
-                return new AreaPainter(chart, style);
+                return new AreaPainter(chart);
             default:
-                return new LinesPainter(chart, style); // Fallback to line painter
+                return new LinesPainter(chart); // Fallback to line painter
         }
     }
 

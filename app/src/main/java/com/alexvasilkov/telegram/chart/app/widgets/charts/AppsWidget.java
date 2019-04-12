@@ -13,6 +13,7 @@ public class AppsWidget extends BaseChartWidget {
         super(context, attrs, R.layout.chart_widget);
 
         titleView.setText(R.string.chart_title_apps);
+        chartView.setGuideCount(5);
 
         ChartsLoader.loadChart(context, Type.APPS, this::setChart);
     }

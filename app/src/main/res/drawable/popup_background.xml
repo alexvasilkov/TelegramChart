@@ -16,11 +16,11 @@
         <shape>
             <corners android:radius="4dp" />
 
-            <solid android:color="@color/popup_background" />
+            <solid android:color="#FFFFFF" />
 
             <stroke
                 android:width="0.5dp"
-                android:color="@color/popup_stroke" />
+                android:color="#E4E4E4" />
         </shape>
 
     </item>

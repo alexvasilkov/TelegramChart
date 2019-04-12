@@ -13,21 +13,24 @@ public class ChartStyle {
 
     public static final int PAINT_FLAGS = Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG;
 
+    public boolean darken;
+
     public final float lineWidth;
     public final float pointRadius;
-    public final int pointColor;
 
     public final float selectionWidth;
-    public final int selectionColor;
+    public int selectionColor;
+    public int selectionMask;
+    public int backgroundColorHint;
+
 
     public ChartStyle(Context context, AttributeSet attrs) {
         TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.BaseChartView);
 
+        darken = arr.getBoolean(R.styleable.BaseChartView_chart_darken, false);
+
         lineWidth = arr.getDimension(R.styleable.BaseChartView_chart_lineWidth,
                 dpToPx(context, 2f));
-
-        pointColor = arr.getColor(R.styleable.BaseChartView_chart_pointColor,
-                Color.WHITE);
 
         pointRadius = arr.getDimension(R.styleable.BaseChartView_chart_pointRadius,
                 dpToPx(context, 4f));
@@ -38,7 +41,20 @@ public class ChartStyle {
         selectionColor = arr.getColor(R.styleable.BaseChartView_chart_selectionColor,
                 Color.TRANSPARENT);
 
+        selectionMask = arr.getColor(R.styleable.BaseChartView_chart_selectionMask,
+                Color.TRANSPARENT);
+
+        backgroundColorHint = arr.getColor(R.styleable.BaseChartView_chart_backgroundHint,
+                Color.TRANSPARENT);
+
         arr.recycle();
+    }
+
+    public void setColors(boolean darken, int backgroundHint, int selection, int selectionMask) {
+        this.darken = darken;
+        this.selectionColor = selection;
+        this.backgroundColorHint = backgroundHint;
+        this.selectionMask = selectionMask;
     }
 
 

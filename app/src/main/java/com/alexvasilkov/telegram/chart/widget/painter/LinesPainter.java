@@ -23,8 +23,8 @@ class LinesPainter extends Painter {
     private float[] pathsPoints;
     private float[] pathsPointsTransformed;
 
-    LinesPainter(Chart chart, ChartStyle style, boolean independentSources) {
-        this(chart, style);
+    LinesPainter(Chart chart, boolean independentSources) {
+        this(chart);
 
         if (independentSources) {
             final int size = chart.x.length;
@@ -57,7 +57,7 @@ class LinesPainter extends Painter {
         }
     }
 
-    LinesPainter(Chart chart, ChartStyle style) {
+    LinesPainter(Chart chart) {
         super(chart);
 
         final int points = chart.x.length;
@@ -69,17 +69,18 @@ class LinesPainter extends Painter {
         pathPaint.setStrokeJoin(Paint.Join.ROUND);
 
         pointPaint.setStyle(Paint.Style.FILL);
-
-        applyStyle(style);
     }
 
-    private void applyStyle(ChartStyle style) {
+    @Override
+    public void applyStyle(ChartStyle style) {
+        super.applyStyle(style);
+
         pathPaint.setStrokeWidth(style.lineWidth);
 
         selectionPaint.setStrokeWidth(style.selectionWidth);
         selectionPaint.setColor(style.selectionColor);
 
-        pointPaint.setColor(style.pointColor);
+        pointPaint.setColor(style.backgroundColorHint);
         pointRadius = style.pointRadius;
     }
 
@@ -148,7 +149,7 @@ class LinesPainter extends Painter {
                 continue; // Ignoring invisible sources
             }
 
-            pathPaint.setColor(source.color);
+            pathPaint.setColor(getSourceColor(l));
             pathPaint.setAlpha(toAlpha(state));
 
             if (simplified) {
@@ -173,7 +174,7 @@ class LinesPainter extends Painter {
                 continue; // Ignoring invisible sources
             }
 
-            pathPaint.setColor(source.color);
+            pathPaint.setColor(getSourceColor(l));
             pathPaint.setAlpha(toAlpha(state));
             // Point's alpha should change much slower than main path
             pointPaint.setAlpha(toAlpha((float) Math.sqrt(Math.sqrt(state))));
