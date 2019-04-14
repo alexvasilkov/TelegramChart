@@ -30,7 +30,7 @@ public class Formatters {
         return yFormat.format(value);
     }
 
-    public String formatNumberAbbreviate(long value, long max) {
+    public String formatNumberAbbreviate(int value, long max) {
         if (value == 0) {
             return "0";
         } else if (max >= 10_000_000) {

@@ -14,9 +14,10 @@ import android.widget.TextView;
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.domain.Chart.Source;
+import com.alexvasilkov.telegram.chart.domain.FormatterDate;
+import com.alexvasilkov.telegram.chart.domain.FormatterValue;
 import com.alexvasilkov.telegram.chart.utils.ColorUtils;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
-import com.alexvasilkov.telegram.chart.widget.ChartView.Formatter;
 
 import java.util.Locale;
 
@@ -31,8 +32,8 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
     private int textColor;
 
     private OnPopupClickListener clickListener;
-    private Formatter dateFormat;
-    private Formatter valueFormat;
+    private FormatterDate dateFormat;
+    private FormatterValue valueFormat;
 
     private Chart chart;
     private int chartIndex;
@@ -51,11 +52,11 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
         this.clickListener = clickListener;
     }
 
-    public void setDateFormat(Formatter dateFormat) {
+    public void setDateFormat(FormatterDate dateFormat) {
         this.dateFormat = dateFormat;
     }
 
-    public void setValueFormat(Formatter valueFormat) {
+    public void setValueFormat(FormatterValue valueFormat) {
         this.valueFormat = valueFormat;
     }
 
@@ -115,7 +116,7 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
             }
 
             holder.items[i].name.setText(source.name);
-            holder.items[i].value.setText(valueFormat.format(value));
+            holder.items[i].value.setText(valueFormat.format(value, 0));
             holder.items[i].value.setTextColor(ColorUtils.darken(source.color));
 
             if (showPercent(chart)) {
@@ -144,7 +145,7 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
             }
 
             total.name.setText(R.string.all);
-            total.value.setText(valueFormat.format(totalValue));
+            total.value.setText(valueFormat.format(totalValue, 0));
         }
     }
 

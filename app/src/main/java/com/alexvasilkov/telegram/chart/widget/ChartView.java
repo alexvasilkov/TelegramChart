@@ -18,6 +18,8 @@ import android.view.ViewGroup;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.domain.FormatterDate;
+import com.alexvasilkov.telegram.chart.domain.FormatterValue;
 import com.alexvasilkov.telegram.chart.domain.GroupBy;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
@@ -56,8 +58,8 @@ public class ChartView extends BaseChartView {
 
     private final Paint yLabelPaint = new Paint(ChartStyle.PAINT_FLAGS);
 
-    private Formatter xLabelFormatter;
-    private Formatter yLabelFormatter;
+    private FormatterDate xLabelFormatter;
+    private FormatterValue yLabelFormatter;
 
     private final GestureDetector gestureDetector;
     private final Matrix matrixInverse = new Matrix();
@@ -152,11 +154,11 @@ public class ChartView extends BaseChartView {
         yGuidesCount = guidesCount;
     }
 
-    public void setXLabelFormatter(Formatter formatter) {
+    public void setXLabelFormatter(FormatterDate formatter) {
         xLabelFormatter = formatter;
     }
 
-    public void setYLabelFormatter(Formatter formatter) {
+    public void setYLabelFormatter(FormatterValue formatter) {
         yLabelFormatter = formatter;
     }
 
@@ -254,15 +256,20 @@ public class ChartView extends BaseChartView {
 
             yGuides = new YGuides(yGuidesCount, independentSources, hasVisibleSources());
 
+            final int maxValue = (int) yRangeEnd.to;
+
             for (int i = 0; i < yGuidesCount; i++) {
                 final int value = (int) (fromY + (toY - fromY) * i / (yGuidesCount - 1));
                 yGuides.orig[i] = value;
 
                 for (int s = 0; s < independentSources; s++) {
-                    int scaledValue = Math.round(value / painter.getSourcesScales()[s]);
+                    final float scale = painter.getSourcesScales()[s];
+                    final int scaledValue = Math.round(value / scale);
+                    final int scaledMaxValue = Math.round(maxValue / scale);
 
                     yGuides.titles[s][i] = yLabelFormatter == null
-                            ? String.valueOf(scaledValue) : yLabelFormatter.format(scaledValue);
+                            ? String.valueOf(scaledValue)
+                            : yLabelFormatter.format(scaledValue, scaledMaxValue);
                 }
             }
 
@@ -273,10 +280,6 @@ public class ChartView extends BaseChartView {
                 yGuides.state.setTo(1f); // Setting initial visible state
             }
         }
-    }
-
-    public int getMaxY() {
-        return (int) yRangeEnd.to;
     }
 
     private void prepareXLabels() {
@@ -727,11 +730,6 @@ public class ChartView extends BaseChartView {
         int size() {
             return orig.length;
         }
-    }
-
-
-    public interface Formatter {
-        String format(long value);
     }
 
 

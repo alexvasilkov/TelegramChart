@@ -407,8 +407,7 @@ public abstract class BaseChartWidget extends FrameLayout {
             chartView.setSelectionPopupAdapter(popupAdapter);
             finderView.attachTo(chartView);
 
-            chartView.setYLabelFormatter(value ->
-                    formatters.formatNumberAbbreviate(value, chartView.getMaxY()));
+            chartView.setYLabelFormatter(formatters::formatNumberAbbreviate);
 
             chartView.setXRangeListener((chart, range) -> {
                 final long from = chart.x[Math.round(range.from)];
@@ -416,7 +415,7 @@ public abstract class BaseChartWidget extends FrameLayout {
                 rangeText.setText(formatters.formatRangeLong(from, to));
             });
 
-            popupAdapter.setValueFormat(formatters::formatNumber);
+            popupAdapter.setValueFormat((value, max) -> formatters.formatNumber(value));
         }
     }
 
