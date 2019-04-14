@@ -490,8 +490,8 @@ public class ChartView extends BaseChartView {
             return;
         }
         if (selectedChartX != -1) {
-            selectionPopupAdapter.show(chart, getSourcesVisibility(), selectedChartX);
             updateSelectionPopupPos();
+            selectionPopupAdapter.show(chart, getSourcesVisibility(), selectedChartX);
         } else {
             selectionPopupAdapter.hide();
         }
@@ -505,10 +505,10 @@ public class ChartView extends BaseChartView {
             // Moving popup view to correct position
             final float posX = ChartMath.mapX(matrix, selectedChartX);
             final Rect chartPos = getChartPosition();
-            float shift = (posX - chartPos.left) / chartPos.width();
-            shift = shift < 0f ? 0f : (shift > 1f ? 1f : shift);
+            final int chartMid = (chartPos.left + chartPos.right) / 2;
+            float shift = posX > chartMid ? 1.07f : -0.07f;
 
-            selectionPopupAdapter.setPosition(posX - chartPos.left, shift);
+            selectionPopupAdapter.setPosition(posX - getPaddingLeft(), shift);
         }
     }
 
@@ -742,6 +742,7 @@ public class ChartView extends BaseChartView {
 
         private T holder;
         private boolean shown;
+        private float shift;
 
         protected abstract void bindView(
                 T holder, Chart chart, boolean[] visibilities, int index, boolean animate);
@@ -787,8 +788,19 @@ public class ChartView extends BaseChartView {
         }
 
         void setPosition(float left, float leftShift) {
-            final float posX = left - holder.itemView.getWidth() * leftShift;
-            holder.itemView.setTranslationX(posX);
+            ((MarginLayoutParams) holder.itemView.getLayoutParams()).leftMargin = Math.round(left);
+            holder.itemView.requestLayout();
+
+            final float newShift = -holder.itemView.getWidth() * leftShift;
+            if (shift != newShift) {
+                shift = newShift;
+                if (shown) {
+                    holder.itemView.animate().translationX(shift);
+                } else {
+                    holder.itemView.animate().cancel();
+                    holder.itemView.setTranslationX(shift);
+                }
+            }
         }
 
         private void clear() {
