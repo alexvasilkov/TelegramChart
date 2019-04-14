@@ -10,11 +10,11 @@ import com.alexvasilkov.telegram.chart.data.ChartsLoader.Type;
 public class InteractionsWidget extends BaseChartWidget {
 
     public InteractionsWidget(Context context, AttributeSet attrs) {
-        super(context, attrs, R.layout.chart_widget);
+        super(context, attrs);
 
-        titleView.setText(R.string.chart_title_interactions);
+        main.titleText.setText(R.string.chart_title_interactions);
 
-        ChartsLoader.loadChart(context, Type.INTERACTIONS, this::setChart);
+        ChartsLoader.loadChart(context, Type.INTERACTIONS, this::setMainChart);
     }
 
 }

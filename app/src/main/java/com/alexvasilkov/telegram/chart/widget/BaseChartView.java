@@ -167,12 +167,20 @@ abstract class BaseChartView extends FrameLayout {
         notifyReady();
     }
 
-    public void setSource(int pos, boolean visible, boolean animate) {
-        final float target = visible ? 1f : 0f;
-        if (animate) {
-            sourcesStates[pos].animateTo(target);
-        } else {
-            sourcesStates[pos].setTo(target);
+    public void setSourceVisibility(int pos, boolean visible, boolean animate) {
+        boolean[] visibilities = getSourcesVisibility();
+        visibilities[pos] = visible;
+        setSourceVisibility(visibilities, animate);
+    }
+
+    public void setSourceVisibility(boolean[] visibility, boolean animate) {
+        for (int i = 0; i < visibility.length; i++){
+            final float target = visibility[i] ? 1f : 0f;
+            if (animate) {
+                sourcesStates[i].animateTo(target);
+            } else {
+                sourcesStates[i].setTo(target);
+            }
         }
 
         // requesting ranges update
@@ -183,7 +191,7 @@ abstract class BaseChartView extends FrameLayout {
         notifyReady();
     }
 
-    boolean[] getSourcesVisibility() {
+    public boolean[] getSourcesVisibility() {
         for (int i = 0, size = sourcesStates.length; i < size; i++) {
             sourcesVisibility[i] = sourcesStates[i].getTarget() == 1f;
         }
@@ -310,7 +318,7 @@ abstract class BaseChartView extends FrameLayout {
         yRangeEnd.set(fromY, toY);
 
         if (xRangeListener != null) {
-            xRangeListener.onRangeChanged(xRangeEnd);
+            xRangeListener.onRangeChanged(chart, xRangeEnd);
         }
     }
 
@@ -407,7 +415,7 @@ abstract class BaseChartView extends FrameLayout {
 
 
     public interface OnRangeChangeListener {
-        void onRangeChanged(Range range);
+        void onRangeChanged(Chart chart, Range range);
     }
 
 }

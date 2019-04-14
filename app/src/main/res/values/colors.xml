@@ -15,6 +15,7 @@
     <color name="background">#FFFFFF</color>
 
     <color name="text">#000000</color>
+    <color name="text_highlight">#108BE3</color>
 
     <color name="chart_guides">#1A182D3B</color>
     <color name="chart_labels">#80252529</color>
@@ -36,6 +37,7 @@
     <color name="background_night">#242f3e</color>
 
     <color name="text_night">#FFFFFF</color>
+    <color name="text_highlight_night">#48AAF0</color>
 
     <color name="chart_guides_night">#1AFFFFFF</color>
     <color name="chart_labels_night">#80ECF2F8</color>

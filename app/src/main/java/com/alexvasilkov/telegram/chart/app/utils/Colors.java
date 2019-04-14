@@ -18,15 +18,17 @@ public class Colors {
     private static final float[] hsv = new float[3];
 
 
+    public final boolean isDark;
+
     public final int statusBar;
     public final int actionBar;
     public final int navBar;
 
     public final int window;
     public final int background;
-    public final int text;
 
-    public final boolean chartDarken;
+    public final int text;
+    public final int textHighlight;
 
     public final int chartGuides;
     public final int chartLabels;
@@ -49,6 +51,8 @@ public class Colors {
     }
 
     public Colors(Context context, Type type) {
+        isDark = type == Type.NIGHT;
+
         statusBar = color(context, type, "status_bar");
         actionBar = color(context, type, "action_bar");
         navBar = color(context, type, "nav_bar");
@@ -57,8 +61,8 @@ public class Colors {
         background = color(context, type, "background");
 
         text = color(context, type, "text");
+        textHighlight = color(context, type, "text_highlight");
 
-        chartDarken = type == Type.NIGHT;
         chartGuides = color(context, type, "chart_guides");
         chartLabels = color(context, type, "chart_labels");
         chartSelectionMask = color(context, type, "chart_selection_mask");

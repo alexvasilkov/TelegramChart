@@ -27,7 +27,7 @@ public enum GroupBy {
 
         switch (this) {
             case DAY:
-                return cal.get(Calendar.HOUR_OF_DAY) == 0;
+                return cal.get(Calendar.HOUR_OF_DAY) == 0 && cal.get(Calendar.MINUTE) == 0;
             case MONTH:
                 return cal.get(Calendar.DAY_OF_MONTH) == 1;
             default:

@@ -42,7 +42,7 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
     }
 
     public void setColors(int popup, int text) {
-        colorsSet = true;
+        this.colorsSet = true;
         this.popupColor = popup;
         this.textColor = text;
     }

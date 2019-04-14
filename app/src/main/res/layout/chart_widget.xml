@@ -4,40 +4,97 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    tools:ignore="ContentDescription,RtlHardcoded">
 
-    <LinearLayout
-        style="@style/Chart.TitlesLayout"
-        android:baselineAligned="true"
-        android:orientation="horizontal">
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/chart_title"
-            style="@style/Chart.Title"
-            tools:text="Chart" />
+        <LinearLayout style="@style/Chart.TitlesLayout">
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
+            <TextView
+                android:id="@+id/chart_title"
+                style="@style/Chart.Title"
+                tools:text="Chart" />
 
-        <TextView
-            android:id="@+id/chart_range"
-            style="@style/Chart.Title"
-            android:layout_marginLeft="8dp"
-            android:textSize="13sp"
-            tools:text="1 April 2019 - 31 April 2019"
-            tools:ignore="RtlHardcoded" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/chart_range"
+                style="@style/Chart.Range"
+                tools:text="1 April 2019 - 31 April 2019" />
 
-    <com.alexvasilkov.telegram.chart.widget.ChartView
-        android:id="@+id/chart_view"
-        style="@style/Chart.View" />
+        </LinearLayout>
 
-    <com.alexvasilkov.telegram.chart.widget.ChartFinderView
-        android:id="@+id/chart_finder_view"
-        style="@style/Chart.Finder" />
+        <LinearLayout
+            style="@style/Chart.TitlesLayout"
+            android:layout_marginLeft="8dp">
+
+            <TextView
+                android:id="@+id/chart_details_title"
+                style="@style/Chart.Title"
+                android:alpha="0"
+                android:background="?android:selectableItemBackground"
+                android:drawableLeft="@drawable/ic_zoom_out"
+                android:drawablePadding="4dp"
+                android:paddingLeft="5dp"
+                android:paddingRight="8dp"
+                android:text="@string/zoom_out"
+                android:visibility="invisible"
+                tools:drawableTint="@color/text_highlight"
+                tools:textColor="@color/text_highlight" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/chart_details_range"
+                style="@style/Chart.Range"
+                android:alpha="0"
+                android:visibility="invisible"
+                tools:text="15 April 2019" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.alexvasilkov.telegram.chart.widget.ChartView
+            android:id="@+id/chart_view"
+            style="@style/Chart.View" />
+
+        <com.alexvasilkov.telegram.chart.widget.ChartView
+            android:id="@+id/chart_details_view"
+            style="@style/Chart.View"
+            android:alpha="0"
+            android:visibility="invisible" />
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.alexvasilkov.telegram.chart.widget.ChartFinderView
+            android:id="@+id/chart_finder_view"
+            style="@style/Chart.Finder" />
+
+        <com.alexvasilkov.telegram.chart.widget.ChartFinderView
+            android:id="@+id/chart_details_finder_view"
+            style="@style/Chart.Finder"
+            android:alpha="0"
+            android:visibility="invisible" />
+
+    </FrameLayout>
 
     <com.alexvasilkov.telegram.chart.app.widgets.FlowLineLayout
         android:id="@+id/chart_sources"

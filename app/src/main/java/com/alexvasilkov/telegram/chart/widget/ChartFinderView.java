@@ -11,6 +11,7 @@ import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
 import android.view.GestureDetector.SimpleOnGestureListener;
+import android.view.Gravity;
 import android.view.MotionEvent;
 
 import com.alexvasilkov.telegram.chart.R;
@@ -53,9 +54,10 @@ public class ChartFinderView extends BaseChartView {
 
     private GroupBy groupBy;
     private boolean snapToGroup;
-    private int initialGroupsCount;
     private int minGroupsCount;
     private int maxGroupsCount;
+    private int initialGroupsCount;
+    private int initialGravity;
     private final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
 
@@ -114,18 +116,19 @@ public class ChartFinderView extends BaseChartView {
     }
 
     @Override
-    public void setSource(int pos, boolean visible, boolean animate) {
-        super.setSource(pos, visible, animate);
-        chartView.setSource(pos, visible, animate);
+    public void setSourceVisibility(boolean[] visibility, boolean animate) {
+        super.setSourceVisibility(visibility, animate);
+        chartView.setSourceVisibility(visibility, animate);
     }
 
-
-    public void groupBy(GroupBy groupBy, int min, int max, int initial, boolean snap) {
+    public void groupBy(
+            GroupBy groupBy, int min, int max, int initial, int initialGravity, boolean snap) {
         this.groupBy = groupBy;
-        initialGroupsCount = initial;
-        minGroupsCount = min;
-        maxGroupsCount = max;
-        snapToGroup = snap;
+        this.minGroupsCount = min;
+        this.maxGroupsCount = max;
+        this.initialGroupsCount = initial;
+        this.initialGravity = initialGravity;
+        this.snapToGroup = snap;
     }
 
     @Override
@@ -301,7 +304,21 @@ public class ChartFinderView extends BaseChartView {
         if (groupBy != null) {
             // It time interval is set we'll start with max possible range from right side
             final float initialDistance = initialGroupsCount * groupBy.stepsCount(chart.resolution);
-            handleRange.from = chartRange.fit(handleRange.to - initialDistance);
+
+            float from = handleRange.from;
+            float to = handleRange.to;
+            if (initialGravity == Gravity.START) {
+                to = from + initialDistance;
+            } else if (initialGravity == Gravity.CENTER) {
+                from = 0.5f * (from + to - initialDistance);
+                to = from + initialDistance;
+            } else {
+                from = to - initialDistance;
+            }
+
+            handleRange.from = chartRange.fit(from);
+            handleRange.to = chartRange.fit(to);
+
             if (snapToGroup) {
                 snapToGroups(handleRange, handleRange, groupBy, HANDLE_BOTH);
             }

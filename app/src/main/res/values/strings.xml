@@ -3,6 +3,7 @@
     <string name="app_name">Telegram Chart</string>
 
     <string name="all">All</string>
+    <string name="zoom_out">Zoom Out</string>
 
     <string name="menu_night_mode">Toggle night mode</string>
 

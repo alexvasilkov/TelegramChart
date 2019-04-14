@@ -6,14 +6,15 @@ import android.text.format.DateUtils;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
+import java.util.Formatter;
 import java.util.Locale;
 
 public class Formatters {
 
+    private static final String timeZone = "UTC";
+
     private final Context context;
-
     private final DecimalFormat yFormat;
-
 
     public Formatters(Context context) {
         this.context = context;
@@ -45,12 +46,21 @@ public class Formatters {
         }
     }
 
+    public String formatTime(long timestamp) {
+        final int flags = DateUtils.FORMAT_SHOW_TIME
+                | DateUtils.FORMAT_ABBREV_TIME
+                | DateUtils.FORMAT_NO_MIDNIGHT
+                | DateUtils.FORMAT_NO_NOON;
+
+        return format(timestamp, flags);
+    }
+
     public String formatDateShort(long timestamp) {
         final int flags = DateUtils.FORMAT_SHOW_DATE
                 | DateUtils.FORMAT_NO_YEAR
                 | DateUtils.FORMAT_ABBREV_MONTH;
 
-        return DateUtils.formatDateTime(context, timestamp, flags);
+        return format(timestamp, flags);
     }
 
     public String formatDateLong(long timestamp) {
@@ -60,7 +70,7 @@ public class Formatters {
                 | DateUtils.FORMAT_SHOW_WEEKDAY
                 | DateUtils.FORMAT_ABBREV_WEEKDAY;
 
-        return DateUtils.formatDateTime(context, timestamp, flags);
+        return format(timestamp, flags);
     }
 
     public String formatRangeLong(long from, long to) {
@@ -68,8 +78,15 @@ public class Formatters {
                 | DateUtils.FORMAT_SHOW_YEAR
                 | DateUtils.FORMAT_ABBREV_MONTH;
 
-        return DateUtils.formatDateTime(context, from, flags) + " – "
-                + DateUtils.formatDateTime(context, to, flags);
+        final String fromStr = format(from, flags);
+        final String toStr = format(to, flags);
+        return fromStr.equals(toStr) ? fromStr : fromStr + " – " + toStr;
+    }
+
+
+    private String format(long time, int flags) {
+        Formatter f = new Formatter(new StringBuilder(50), Locale.getDefault());
+        return DateUtils.formatDateRange(context, f, time, time, flags, timeZone).toString();
     }
 
 }

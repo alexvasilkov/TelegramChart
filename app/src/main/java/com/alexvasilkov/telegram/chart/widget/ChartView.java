@@ -18,6 +18,7 @@ import android.view.ViewGroup;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.domain.GroupBy;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.LabelsHelper;
@@ -159,6 +160,10 @@ public class ChartView extends BaseChartView {
         yLabelFormatter = formatter;
     }
 
+    public void groupBy(GroupBy groupBy) {
+        xLabelsHelper.setGroupBy(groupBy);
+    }
+
     @Override
     public void setChart(Chart newChart) {
         // Invalidating X labels
@@ -178,8 +183,8 @@ public class ChartView extends BaseChartView {
     }
 
     @Override
-    public void setSource(int pos, boolean visible, boolean animate) {
-        super.setSource(pos, visible, animate);
+    public void setSourceVisibility(boolean[] visibility, boolean animate) {
+        super.setSourceVisibility(visibility, animate);
 
         // We need to update popup since sources visibility is changed
         updateSelectionPopupContent();
@@ -283,8 +288,8 @@ public class ChartView extends BaseChartView {
         xLabels = new ArrayList<>(size);
 
         // Preparing titles
-        float maxLabelWidth = 0f;
-        final float[] widths = new float[size];
+        int maxLabelWidth = 0;
+        final int[] widths = new int[size];
         final String[] titles = new String[size];
 
         for (int i = 0; i < size; i++) {
@@ -295,14 +300,9 @@ public class ChartView extends BaseChartView {
         }
         xLabelsMaxWidth = maxLabelWidth;
 
-        // Computing maximum number of intervals that can possibly fit into single screen
-        int totalWidth = getChartPosition().width();
-        float maxIntervals = (totalWidth - maxLabelWidth) / (maxLabelWidth + xLabelPadding);
-        maxIntervals = Math.max(maxIntervals, 2f); // Assuming screen must fit at least 3 labels
-        xLabelsHelper.init(maxIntervals);
+        xLabelsHelper.init(getChartPosition().width(), maxLabelWidth, xLabelPadding);
 
-        final float[] levels = xLabelsHelper.computeLabelsLevels(
-                chart.x[0], chart.x[chart.x.length - 1], chart.resolution);
+        final float[] levels = xLabelsHelper.computeLabelsLevels(chart);
 
         for (int i = 0; i < size; i++) {
             // Inverting levels position according to direction
@@ -310,7 +310,7 @@ public class ChartView extends BaseChartView {
         }
     }
 
-    private float measureXLabel(String title) {
+    private int measureXLabel(String title) {
         xLabelPaint.getTextBounds(title, 0, title.length(), textBounds);
         return textBounds.width();
     }

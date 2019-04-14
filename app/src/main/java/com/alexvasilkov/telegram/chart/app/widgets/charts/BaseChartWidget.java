@@ -1,12 +1,16 @@
 package com.alexvasilkov.telegram.chart.app.widgets.charts;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -24,81 +28,166 @@ import com.alexvasilkov.telegram.chart.utils.ColorUtils;
 import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
+import java.util.Calendar;
+import java.util.TimeZone;
+
 public abstract class BaseChartWidget extends FrameLayout {
 
-    final TextView titleView;
-    final TextView rangeView;
-    final ChartView chartView;
-    final ChartFinderView finderView;
-    final ViewGroup sourcesView;
+    private final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
-    private final PopupAdapter popupAdapter;
+    final Holder main;
+    final Holder details;
+    final ViewGroup sourcesGroup;
 
     final Formatters formatters = new Formatters(getContext());
 
     private boolean darken;
+    private boolean detailsShown;
 
-    public BaseChartWidget(Context context, AttributeSet attrs, int layoutId) {
+    public BaseChartWidget(Context context, AttributeSet attrs) {
         super(context, attrs);
+        LayoutInflater.from(context).inflate(R.layout.chart_widget, this, true);
+
         setAlpha(0f);
 
-        LayoutInflater.from(context).inflate(layoutId, this, true);
+        main = new Holder(
+                findViewById(R.id.chart_title),
+                findViewById(R.id.chart_range),
+                findViewById(R.id.chart_view),
+                findViewById(R.id.chart_finder_view),
+                new PopupAdapter(getContext()),
+                formatters
+        );
 
-        titleView = findViewById(R.id.chart_title);
-        rangeView = findViewById(R.id.chart_range);
-        chartView = findViewById(R.id.chart_view);
-        finderView = findViewById(R.id.chart_finder_view);
-        sourcesView = findViewById(R.id.chart_sources);
+        details = new Holder(
+                findViewById(R.id.chart_details_title),
+                findViewById(R.id.chart_details_range),
+                findViewById(R.id.chart_details_view),
+                findViewById(R.id.chart_details_finder_view),
+                new PopupAdapter(getContext()),
+                formatters
+        );
 
-        popupAdapter = new PopupAdapter(getContext());
-        popupAdapter.setDateFormat(formatters::formatDateLong);
-        popupAdapter.setValueFormat(formatters::formatNumber);
-        chartView.setSelectionPopupAdapter(popupAdapter);
-    }
+        sourcesGroup = findViewById(R.id.chart_sources);
 
-    public void setChart(Chart chart) {
-        animate().setDuration(400L).alpha(1f);
+        main.chartView.setXLabelFormatter(formatters::formatDateShort);
+        main.chartView.groupBy(GroupBy.MONTH);
+        main.finderView.groupBy(GroupBy.MONTH, 2, 12, 4, Gravity.END, false);
+        main.popupAdapter.setDateFormat(formatters::formatDateLong);
+        main.popupAdapter.setClickListener((chart, index) -> onRequestDetails(chart.x[index]));
 
-        chartView.setXLabelFormatter(formatters::formatDateShort);
-        chartView.setYLabelFormatter(value ->
-                formatters.formatNumberAbbreviate(value, chartView.getMaxY()));
-
-        chartView.setXRangeListener(range -> {
-            final long from = chart.x[(int) range.from];
-            final long to = chart.x[(int) range.to];
-            rangeView.setText(formatters.formatRangeLong(from, to));
+        details.titleText.setOnClickListener(view -> showDetails(false));
+        details.chartView.setXLabelFormatter(time -> {
+            if (GroupBy.DAY.isStart(calendar, time)) {
+                return formatters.formatDateShort(time);
+            } else {
+                return formatters.formatTime(time);
+            }
         });
-
-        finderView.attachTo(chartView);
-        finderView.groupBy(GroupBy.MONTH, 2, 12, 4, false);
-        finderView.setChart(chart);
-        showSources(chart.sources);
+        details.chartView.groupBy(GroupBy.DAY);
+        details.finderView.groupBy(GroupBy.DAY, 1, Integer.MAX_VALUE, 1, Gravity.CENTER, true);
+        details.popupAdapter.setDateFormat(formatters::formatTime);
     }
+
+    boolean isDetailsHasSameSources() {
+        return true;
+    }
+
+    void setMainChart(Chart chart) {
+        animate().setDuration(400L).alpha(1f);
+        main.chart = chart;
+        main.finderView.setChart(chart);
+        showSources(chart.sources, main.chartView.getSourcesVisibility());
+    }
+
+    void setDetailsChart(Chart chart) {
+        details.chart = chart;
+        details.finderView.setChart(chart);
+
+        if (isDetailsHasSameSources()) {
+            details.finderView.setSourceVisibility(main.finderView.getSourcesVisibility(), false);
+        }
+
+        showDetails(true);
+    }
+
+    void onRequestDetails(long date) {} // TODO: Make abstract once all widgets are implemented
+
+    void showDetails(boolean show) {
+        if (detailsShown == show) {
+            return;
+        }
+
+        detailsShown = show;
+
+        if (!isDetailsHasSameSources()) {
+            Holder holder = show ? details : main;
+            showSources(holder.chart.sources, holder.chartView.getSourcesVisibility());
+        }
+
+        animateAlpha(main.titleText, show ? 0f : 1f);
+        animateAlpha(main.rangeText, show ? 0f : 1f);
+        animateAlpha(main.chartView, show ? 0f : 1f);
+        animateAlpha(main.finderView, show ? 0f : 1f);
+
+        animateAlpha(details.titleText, show ? 1f : 0f);
+        animateAlpha(details.rangeText, show ? 1f : 0f);
+        animateAlpha(details.chartView, show ? 1f : 0f);
+        animateAlpha(details.finderView, show ? 1f : 0f);
+    }
+
+    private void animateAlpha(View view, float alpha) {
+        if (alpha == 1f) {
+            view.setVisibility(VISIBLE);
+        }
+
+        view.animate()
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        if (alpha == 0f) {
+                            view.setVisibility(INVISIBLE);
+                        }
+                    }
+                })
+                .alpha(alpha);
+    }
+
 
     public void setColors(Colors colors) {
         setBackgroundColor(colors.background);
 
-        titleView.setTextColor(colors.text);
-        rangeView.setTextColor(colors.text);
+        setColors(main, colors);
+        setColors(details, colors);
 
-        chartView.setBaseColors(colors.chartDarken, colors.background,
-                colors.chartGuides, colors.chartSelectionMask);
-        chartView.setColors(colors.chartGuides, colors.chartLabels, colors.chartGuides);
+        details.titleText.setTextColor(colors.textHighlight);
 
-        finderView.setBaseColors(colors.chartDarken, colors.background,
-                colors.chartGuides, colors.chartSelectionMask);
-        finderView.setColors(colors.finderForeground, colors.finderFrame, colors.background);
+        final Drawable zoomIcon = details.titleText.getCompoundDrawables()[0].mutate();
+        zoomIcon.setColorFilter(colors.textHighlight, PorterDuff.Mode.SRC_IN);
+        details.titleText.setCompoundDrawablesWithIntrinsicBounds(zoomIcon, null, null, null);
 
-        popupAdapter.setColors(colors.popup, colors.text);
-        chartView.updateSelectionPopupContent();
-
-
-        darken = colors.chartDarken;
+        darken = colors.isDark;
         updateCheckboxColors();
     }
 
-    private void showSources(Source[] sources) {
-        sourcesView.removeAllViews();
+    private void setColors(Holder holder, Colors colors) {
+        holder.titleText.setTextColor(colors.text);
+        holder.rangeText.setTextColor(colors.text);
+
+        holder.chartView.setBaseColors(colors.isDark, colors.background,
+                colors.chartGuides, colors.chartSelectionMask);
+        holder.chartView.setColors(colors.chartGuides, colors.chartLabels, colors.chartGuides);
+
+        holder.finderView.setBaseColors(colors.isDark, colors.background,
+                colors.chartGuides, colors.chartSelectionMask);
+        holder.finderView.setColors(colors.finderForeground, colors.finderFrame, colors.background);
+
+        holder.popupAdapter.setColors(colors.popup, colors.text);
+        holder.chartView.updateSelectionPopupContent();
+    }
+
+    private void showSources(Source[] sources, boolean[] states) {
+        sourcesGroup.removeAllViews();
 
         if (sources == null) {
             return;
@@ -108,23 +197,28 @@ public abstract class BaseChartWidget extends FrameLayout {
             final Source source = sources[i];
             final int pos = i;
 
-            final CheckBox check = (CheckBox) LayoutInflater.from(sourcesView.getContext())
-                    .inflate(R.layout.chart_source_item, sourcesView, false);
+            final CheckBox check = (CheckBox) LayoutInflater.from(sourcesGroup.getContext())
+                    .inflate(R.layout.chart_source_item, sourcesGroup, false);
 
             check.setTag(source.color);
             check.setText(source.name);
 
-            check.setChecked(true);
+            check.setChecked(states[i]);
             updateCheckState(check);
 
             check.setOnCheckedChangeListener((CompoundButton button, boolean isChecked) -> {
-                finderView.setSource(pos, isChecked, true);
+                if (isDetailsHasSameSources() || !detailsShown) {
+                    main.finderView.setSourceVisibility(pos, isChecked, true);
+                }
+                if (detailsShown) {
+                    details.finderView.setSourceVisibility(pos, isChecked, true);
+                }
                 updateCheckState(check);
             });
 
             check.setOnLongClickListener(view -> checkExclusively(check));
 
-            sourcesView.addView(check);
+            sourcesGroup.addView(check);
         }
 
         updateCheckboxColors();
@@ -139,8 +233,8 @@ public abstract class BaseChartWidget extends FrameLayout {
         final int defaultTextColor = Color.WHITE;
 
 
-        for (int i = 0, size = sourcesView.getChildCount(); i < size; i++) {
-            final CheckBox check = (CheckBox) sourcesView.getChildAt(i);
+        for (int i = 0, size = sourcesGroup.getChildCount(); i < size; i++) {
+            final CheckBox check = (CheckBox) sourcesGroup.getChildAt(i);
             int color = (int) check.getTag();
             color = darken ? ColorUtils.darken(color) : color;
 
@@ -170,13 +264,52 @@ public abstract class BaseChartWidget extends FrameLayout {
 
     private boolean checkExclusively(CheckBox currentCheck) {
         currentCheck.setChecked(true);
-        for (int i = 0, size = sourcesView.getChildCount(); i < size; i++) {
-            final CheckBox check = (CheckBox) sourcesView.getChildAt(i);
+        for (int i = 0, size = sourcesGroup.getChildCount(); i < size; i++) {
+            final CheckBox check = (CheckBox) sourcesGroup.getChildAt(i);
             if (check != currentCheck) {
                 check.setChecked(false);
             }
         }
         return true;
+    }
+
+
+    static class Holder {
+        final TextView titleText;
+        final TextView rangeText;
+        final ChartView chartView;
+        final ChartFinderView finderView;
+
+        final PopupAdapter popupAdapter;
+
+        Chart chart;
+
+        Holder(
+                TextView titleText, TextView rangeText,
+                ChartView chartView, ChartFinderView finderView,
+                PopupAdapter popupAdapter,
+                Formatters formatters
+        ) {
+            this.titleText = titleText;
+            this.rangeText = rangeText;
+            this.chartView = chartView;
+            this.finderView = finderView;
+            this.popupAdapter = popupAdapter;
+
+            chartView.setSelectionPopupAdapter(popupAdapter);
+            finderView.attachTo(chartView);
+
+            chartView.setYLabelFormatter(value ->
+                    formatters.formatNumberAbbreviate(value, chartView.getMaxY()));
+
+            chartView.setXRangeListener((chart, range) -> {
+                final long from = chart.x[Math.round(range.from)];
+                final long to = chart.x[Math.round(range.to) - 1];
+                rangeText.setText(formatters.formatRangeLong(from, to));
+            });
+
+            popupAdapter.setValueFormat(formatters::formatNumber);
+        }
     }
 
 }

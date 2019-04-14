@@ -10,12 +10,12 @@ import com.alexvasilkov.telegram.chart.data.ChartsLoader.Type;
 public class AppsWidget extends BaseChartWidget {
 
     public AppsWidget(Context context, AttributeSet attrs) {
-        super(context, attrs, R.layout.chart_widget);
+        super(context, attrs);
 
-        titleView.setText(R.string.chart_title_apps);
-        chartView.setGuideCount(5);
+        main.titleText.setText(R.string.chart_title_apps);
+        main.chartView.setGuideCount(5);
 
-        ChartsLoader.loadChart(context, Type.APPS, this::setChart);
+        ChartsLoader.loadChart(context, Type.APPS, this::setMainChart);
     }
 
 }

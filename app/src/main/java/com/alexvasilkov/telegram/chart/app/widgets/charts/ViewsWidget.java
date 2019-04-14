@@ -10,11 +10,11 @@ import com.alexvasilkov.telegram.chart.data.ChartsLoader.Type;
 public class ViewsWidget extends BaseChartWidget {
 
     public ViewsWidget(Context context, AttributeSet attrs) {
-        super(context, attrs, R.layout.chart_widget);
+        super(context, attrs);
 
-        titleView.setText(R.string.chart_title_views);
+        main.titleText.setText(R.string.chart_title_views);
 
-        ChartsLoader.loadChart(context, Type.VIEWS, this::setChart);
+        ChartsLoader.loadChart(context, Type.VIEWS, this::setMainChart);
     }
 
 }
