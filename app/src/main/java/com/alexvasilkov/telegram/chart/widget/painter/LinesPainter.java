@@ -14,6 +14,8 @@ import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
 class LinesPainter extends Painter {
 
+    private static final boolean FORCE_SIMPLIFY = true;
+
     private final Paint pathPaint = new Paint(ChartStyle.PAINT_FLAGS);
     private final Paint selectionPaint = new Paint();
     private final Paint pointPaint = new Paint(ChartStyle.PAINT_FLAGS);
@@ -152,7 +154,7 @@ class LinesPainter extends Painter {
             pathPaint.setColor(getSourceColor(l));
             pathPaint.setAlpha(toAlpha(state));
 
-            if (simplified) {
+            if (simplified || FORCE_SIMPLIFY) {
                 // Drawing a set of lines is much faster than drawing a path
                 drawAsLines(canvas, matrix, source.y, valuesScale, from, to);
             } else {
