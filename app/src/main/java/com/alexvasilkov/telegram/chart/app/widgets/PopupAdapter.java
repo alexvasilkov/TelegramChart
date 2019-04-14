@@ -67,6 +67,7 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
         ViewHolder holder = new ViewHolder(parent, LayoutInflater.from(context), itemsCount);
         if (clickListener != null) {
             holder.itemView.setOnClickListener(view -> onPopupClicked());
+            holder.arrow.setVisibility(View.VISIBLE);
         }
 
         holder.itemsTable.setColumnStretchable(1, true);
@@ -163,6 +164,7 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
     static class ViewHolder extends ChartView.PopupViewHolder {
 
         final TextView title = itemView.findViewById(R.id.chart_popup_title);
+        final View arrow = itemView.findViewById(R.id.chart_popup_arrow);
         final TableLayout itemsTable = itemView.findViewById(R.id.chart_popup_sources);
 
         final Item[] items;
