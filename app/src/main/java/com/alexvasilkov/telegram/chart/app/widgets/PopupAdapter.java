@@ -101,7 +101,7 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
 
         int totalValue = 0;
         for (int i = 0, size = chart.sources.length; i < size; i++) {
-            totalValue += chart.sources[i].y[index];
+            totalValue += visibilities[i] ? chart.sources[i].y[index] : 0;
         }
 
         for (int i = 0, size = chart.sources.length; i < size; i++) {
@@ -118,8 +118,10 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
             holder.items[i].value.setTextColor(ColorUtils.darken(source.color));
 
             if (showPercent(chart)) {
-                holder.items[i].percent.setText(
-                        String.format(Locale.US, "%.0f%%", 100f * value / totalValue));
+                String percentValue = visibilities[i] && totalValue > 0
+                        ? String.format(Locale.US, "%.0f%%", 100f * value / totalValue)
+                        : "-";
+                holder.items[i].percent.setText(percentValue);
             }
 
             final float targetAlpha = visibilities[i] ? 1f : MIN_VALUE_ALPHA;

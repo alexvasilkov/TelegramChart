@@ -2,11 +2,11 @@
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="164dp"
+    android:layout_width="164sp"
     android:layout_height="wrap_content"
     android:background="@drawable/popup_background"
     android:foreground="?android:selectableItemBackground"
-    android:paddingLeft="12dp"
+    android:paddingLeft="4dp"
     android:paddingTop="6dp"
     android:paddingRight="14dp"
     android:paddingBottom="6dp"
@@ -18,6 +18,7 @@
         android:id="@+id/chart_popup_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
         android:fontFamily="sans-serif-medium"
         android:textSize="13sp"
         tools:text="Sat, Feb 24" />
