@@ -2,9 +2,11 @@ package com.alexvasilkov.telegram.chart.app.widgets.charts;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
@@ -24,7 +26,9 @@ import com.alexvasilkov.telegram.chart.app.widgets.PopupAdapter;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.domain.GroupBy;
+import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.ColorUtils;
+import com.alexvasilkov.telegram.chart.widget.BaseChartView;
 import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
@@ -33,6 +37,7 @@ import java.util.TimeZone;
 
 public abstract class BaseChartWidget extends FrameLayout {
 
+    private static final long ANIMATION_DURATION = 300L;
     private final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
     final Holder main;
@@ -42,7 +47,9 @@ public abstract class BaseChartWidget extends FrameLayout {
     final Formatters formatters = new Formatters(getContext());
 
     private boolean darken;
-    private boolean detailsShown;
+
+    private Boolean detailsShown = null;
+    private long detailsDate;
 
     public BaseChartWidget(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -51,6 +58,7 @@ public abstract class BaseChartWidget extends FrameLayout {
         setAlpha(0f);
 
         main = new Holder(
+                findViewById(R.id.chart_layout),
                 findViewById(R.id.chart_title),
                 findViewById(R.id.chart_range),
                 findViewById(R.id.chart_view),
@@ -60,6 +68,7 @@ public abstract class BaseChartWidget extends FrameLayout {
         );
 
         details = new Holder(
+                findViewById(R.id.chart_details_layout),
                 findViewById(R.id.chart_details_title),
                 findViewById(R.id.chart_details_range),
                 findViewById(R.id.chart_details_view),
@@ -74,9 +83,10 @@ public abstract class BaseChartWidget extends FrameLayout {
         main.chartView.groupBy(GroupBy.MONTH);
         main.finderView.groupBy(GroupBy.MONTH, 2, 12, 4, Gravity.END, false);
         main.popupAdapter.setDateFormat(formatters::formatDateLong);
-        main.popupAdapter.setClickListener((chart, index) -> onRequestDetails(chart.x[index]));
+        main.popupAdapter.setClickListener(
+                (chart, index) -> onRequestDetails(detailsDate = chart.x[index]));
 
-        details.titleText.setOnClickListener(view -> showDetails(false));
+        details.titleText.setOnClickListener(view -> showDetails(false, true));
         details.chartView.setXLabelFormatter(time -> {
             if (GroupBy.DAY.isStart(calendar, time)) {
                 return formatters.formatDateShort(time);
@@ -97,7 +107,8 @@ public abstract class BaseChartWidget extends FrameLayout {
         animate().setDuration(400L).alpha(1f);
         main.chart = chart;
         main.finderView.setChart(chart);
-        showSources(chart.sources, main.chartView.getSourcesVisibility());
+
+        showDetails(false, false);
     }
 
     void setDetailsChart(Chart chart) {
@@ -108,49 +119,140 @@ public abstract class BaseChartWidget extends FrameLayout {
             details.finderView.setSourceVisibility(main.finderView.getSourcesVisibility(), false);
         }
 
-        showDetails(true);
+        showDetails(true, true);
     }
 
     void onRequestDetails(long date) {} // TODO: Make abstract once all widgets are implemented
 
-    void showDetails(boolean show) {
-        if (detailsShown == show) {
+    void showDetails(boolean show, boolean animate) {
+        if (detailsShown != null && detailsShown == show) {
             return;
         }
-
-        detailsShown = show;
 
         if (!isDetailsHasSameSources()) {
             Holder holder = show ? details : main;
             showSources(holder.chart.sources, holder.chartView.getSourcesVisibility());
+        } else if (detailsShown == null) {
+            showSources(main.chart.sources, main.chartView.getSourcesVisibility());
         }
 
-        animateAlpha(main.titleText, show ? 0f : 1f);
-        animateAlpha(main.rangeText, show ? 0f : 1f);
-        animateAlpha(main.chartView, show ? 0f : 1f);
-        animateAlpha(main.finderView, show ? 0f : 1f);
+        detailsShown = show;
 
-        animateAlpha(details.titleText, show ? 1f : 0f);
-        animateAlpha(details.rangeText, show ? 1f : 0f);
-        animateAlpha(details.chartView, show ? 1f : 0f);
-        animateAlpha(details.finderView, show ? 1f : 0f);
+        animateVisibility(main.layout, !show, animate);
+        animateVisibility(details.layout, show, animate);
+
+        final float minScale = 0.5f;
+
+        animateScale(main.titleText, Gravity.TOP | Gravity.START, show ? minScale : 1f, animate);
+        animateScale(main.rangeText, Gravity.TOP | Gravity.END, show ? minScale : 1f, animate);
+
+        animateScale(
+                details.titleText, Gravity.BOTTOM | Gravity.START, show ? 1f : minScale, animate);
+        animateScale(
+                details.rangeText, Gravity.BOTTOM | Gravity.END, show ? 1f : minScale, animate);
+
+        if (animate) {
+            animateChart(
+                    main.chartView, main.matrixChart, main.chart,
+                    details.chartView, details.matrixChart, details.chart,
+                    detailsDate, calendar, show
+            );
+            animateChart(
+                    main.finderView, main.matrixFinder, main.chart,
+                    details.finderView, details.matrixFinder, details.chart,
+                    detailsDate, calendar, show
+            );
+        }
     }
 
-    private void animateAlpha(View view, float alpha) {
-        if (alpha == 1f) {
-            view.setVisibility(VISIBLE);
-        }
+    private void animateVisibility(View view, boolean show, boolean animate) {
+        if (animate) {
+            if (show) {
+                view.setVisibility(VISIBLE);
+            }
 
-        view.animate()
-                .setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        if (alpha == 0f) {
-                            view.setVisibility(INVISIBLE);
+            view.animate()
+                    .setDuration(ANIMATION_DURATION)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            if (!show) {
+                                view.setVisibility(INVISIBLE);
+                            }
                         }
-                    }
-                })
-                .alpha(alpha);
+                    })
+                    .alpha(show ? 1f : 0f);
+        } else {
+            view.setVisibility(show ? VISIBLE : INVISIBLE);
+            view.setAlpha(show ? 1f : 0f);
+        }
+    }
+
+    private void animateScale(View view, int gravity, float scale, boolean animate) {
+        boolean right = (gravity & Gravity.END) == Gravity.END;
+        boolean bottom = (gravity & Gravity.BOTTOM) == Gravity.BOTTOM;
+
+        view.setPivotX(right ? view.getWidth() : 0f);
+        view.setPivotY(bottom ? view.getHeight() : 0f);
+
+        if (animate) {
+            view.animate()
+                    .setDuration(ANIMATION_DURATION)
+                    .scaleX(scale).scaleY(scale);
+        } else {
+            view.setScaleX(scale);
+            view.setScaleY(scale);
+        }
+    }
+
+    private static void animateChart(
+            BaseChartView fromView, Matrix fromMatrix, Chart fromChart,
+            BaseChartView toView, Matrix toMatrix, Chart toChart,
+            long date, Calendar calendar, boolean show) {
+
+        fromMatrix.reset();
+        fromView.setChartMatrixExtra(fromMatrix);
+
+        toMatrix.reset();
+        toView.setChartMatrixExtra(toMatrix);
+
+        final float fromWidth = ChartMath.mapX(fromView.getChartMatrix(), 0f)
+                - ChartMath.mapX(fromView.getChartMatrix(), 1f);
+
+        final long toDateEnd = fromChart.resolution.add(calendar, date, 1);
+        final float steps = toChart.resolution.distance(date, toDateEnd);
+
+        final float toWidth = ChartMath.mapX(toView.getChartMatrix(), 0f)
+                - ChartMath.mapX(toView.getChartMatrix(), steps);
+
+        final float scale = Math.min(toWidth / fromWidth, 4f);
+
+        final float fromPos = fromChart.resolution.distance(fromChart.x[0], date);
+        final float fromPivot = ChartMath.mapX(fromView.getChartMatrix(), fromPos);
+
+        final float toPos = toChart.resolution.distance(toChart.x[0], date) + 0.5f * steps;
+        final float toPivot = ChartMath.mapX(toView.getChartMatrix(), toPos);
+
+        final ValueAnimator animator = ValueAnimator.ofFloat(show ? 0f : 1f, show ? 1f : 0f);
+        animator.setDuration(ANIMATION_DURATION);
+        animator.addUpdateListener(anim -> {
+            final float state = (float) anim.getAnimatedValue();
+
+            fromMatrix.reset();
+            final float fromTranslateX = state * (toPivot - fromPivot);
+            fromMatrix.postTranslate(fromTranslateX, 0f);
+            final float fromScaleX = 1f - state + state * scale;
+            fromMatrix.postScale(fromScaleX, 1f, fromPivot + fromTranslateX, 0f);
+            fromView.setChartMatrixExtra(fromMatrix);
+
+            toMatrix.reset();
+            final float toTranslateX = (1f - state) * (fromPivot - toPivot);
+            toMatrix.postTranslate((1f - state) * (fromPivot - toPivot), 0f);
+            final float toScaleX = state + (1f - state) / scale;
+            toMatrix.postScale(toScaleX, 1f, toPivot + toTranslateX, 0f);
+            toView.setChartMatrixExtra(toMatrix);
+        });
+        animator.start();
     }
 
 
@@ -275,6 +377,7 @@ public abstract class BaseChartWidget extends FrameLayout {
 
 
     static class Holder {
+        final View layout;
         final TextView titleText;
         final TextView rangeText;
         final ChartView chartView;
@@ -282,14 +385,19 @@ public abstract class BaseChartWidget extends FrameLayout {
 
         final PopupAdapter popupAdapter;
 
+        final Matrix matrixChart = new Matrix();
+        final Matrix matrixFinder = new Matrix();
+
         Chart chart;
 
         Holder(
+                View layout,
                 TextView titleText, TextView rangeText,
                 ChartView chartView, ChartFinderView finderView,
                 PopupAdapter popupAdapter,
                 Formatters formatters
         ) {
+            this.layout = layout;
             this.titleText = titleText;
             this.rangeText = rangeText;
             this.chartView = chartView;

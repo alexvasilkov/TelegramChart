@@ -15,11 +15,12 @@ import com.alexvasilkov.telegram.chart.utils.Range;
 import com.alexvasilkov.telegram.chart.widget.painter.Painter;
 import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
-abstract class BaseChartView extends FrameLayout {
+public abstract class BaseChartView extends FrameLayout {
 
     private final ChartAnimator animator;
 
     final Matrix matrix = new Matrix();
+    private final Matrix matrixExtra = new Matrix();
 
     private boolean isAnimating;
     private boolean simplifiedDrawing;
@@ -82,6 +83,15 @@ abstract class BaseChartView extends FrameLayout {
 
     public void setXRangeListener(OnRangeChangeListener listener) {
         xRangeListener = listener;
+    }
+
+    public Matrix getChartMatrix() {
+        return matrix;
+    }
+
+    public void setChartMatrixExtra(Matrix matrixExtra) {
+        this.matrixExtra.set(matrixExtra);
+        notifyReady();
     }
 
     @Override
@@ -174,7 +184,7 @@ abstract class BaseChartView extends FrameLayout {
     }
 
     public void setSourceVisibility(boolean[] visibility, boolean animate) {
-        for (int i = 0; i < visibility.length; i++){
+        for (int i = 0; i < visibility.length; i++) {
             final float target = visibility[i] ? 1f : 0f;
             if (animate) {
                 sourcesStates[i].animateTo(target);
@@ -371,6 +381,7 @@ abstract class BaseChartView extends FrameLayout {
         // Setting up transformation matrix
         matrix.setScale(scaleX, -scaleY); // Scale and flip along X axis
         matrix.postTranslate(left, bottom); // Translate to place
+        matrix.postConcat(matrixExtra);
 
         // Adding extra range to continue drawing chart on sides
         int extraLeft = (int) Math.ceil(getExtraLeftSize() / scaleX);
@@ -409,7 +420,7 @@ abstract class BaseChartView extends FrameLayout {
                 to,
                 sourcesStatesValues,
                 selectedPointX,
-                isAnimating || simplifiedDrawing
+                isAnimating || simplifiedDrawing || !matrixExtra.isIdentity()
         );
     }
 
