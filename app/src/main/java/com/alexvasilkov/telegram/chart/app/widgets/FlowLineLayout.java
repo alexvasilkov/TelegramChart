@@ -53,7 +53,8 @@ public class FlowLineLayout extends ViewGroup {
             width = widthSum + getPaddingLeft() + getPaddingRight();
         }
 
-        setMeasuredDimension(width, heightSum + rowHeight + getPaddingTop() + getPaddingBottom());
+        int height = heightSum + rowHeight + getPaddingTop() + getPaddingBottom();
+        setMeasuredDimension(width, Math.max(getMinimumHeight(), height));
     }
 
     @Override

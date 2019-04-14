@@ -4,10 +4,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:clipChildren="false"
     android:orientation="vertical"
     tools:ignore="ContentDescription,RtlHardcoded">
 
     <FrameLayout
+        android:id="@+id/charts_content_area"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 

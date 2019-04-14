@@ -9,8 +9,13 @@ public class ColorUtils {
     private ColorUtils() {}
 
     public static int darken(int color) {
+        return adjust(color, -0.1f, -0.2f);
+    }
+
+    public static int adjust(int color, float extraSat, float extraVal) {
         Color.colorToHSV(color, hsv);
-        hsv[2] = Math.max(0f, Math.min(hsv[2] - 0.2f, 1f));
+        hsv[1] = Math.max(0f, Math.min(hsv[1] + extraSat, 1f));
+        hsv[2] = Math.max(0f, Math.min(hsv[2] + extraVal, 1f));
         return Color.HSVToColor(hsv);
     }
 

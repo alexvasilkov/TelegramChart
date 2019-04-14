@@ -388,8 +388,8 @@ public class ChartFinderView extends BaseChartView {
     @Override
     protected void onDraw(Canvas canvas) {
         final Rect chartPos = getChartPosition();
-        final int left = chartPos.left;
-        final int right = chartPos.right;
+        final int left = Math.round(ChartMath.mapX(matrix, xRange.from));
+        final int right = Math.round(ChartMath.mapX(matrix, xRange.to));
         final int top = chartPos.top;
         final int bottom = chartPos.bottom;
         final int topExtra = 0;

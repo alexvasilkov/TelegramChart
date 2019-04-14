@@ -38,10 +38,12 @@ import java.util.TimeZone;
 public abstract class BaseChartWidget extends FrameLayout {
 
     private static final long ANIMATION_DURATION = 300L;
-    private final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+
+    final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
     final Holder main;
     final Holder details;
+    final View chartsContentArea;
     final ViewGroup sourcesGroup;
 
     final Formatters formatters = new Formatters(getContext());
@@ -77,6 +79,7 @@ public abstract class BaseChartWidget extends FrameLayout {
                 formatters
         );
 
+        chartsContentArea = findViewById(R.id.charts_content_area);
         sourcesGroup = findViewById(R.id.chart_sources);
 
         main.chartView.setXLabelFormatter(formatters::formatDateShort);
@@ -97,6 +100,10 @@ public abstract class BaseChartWidget extends FrameLayout {
         details.chartView.groupBy(GroupBy.DAY);
         details.finderView.groupBy(GroupBy.DAY, 1, Integer.MAX_VALUE, 1, Gravity.CENTER, true);
         details.popupAdapter.setDateFormat(formatters::formatTime);
+    }
+
+    boolean showMainSources() {
+        return true;
     }
 
     boolean isDetailsHasSameSources() {
@@ -129,11 +136,13 @@ public abstract class BaseChartWidget extends FrameLayout {
             return;
         }
 
-        if (!isDetailsHasSameSources()) {
-            Holder holder = show ? details : main;
-            showSources(holder.chart.sources, holder.chartView.getSourcesVisibility());
-        } else if (detailsShown == null) {
-            showSources(main.chart.sources, main.chartView.getSourcesVisibility());
+        final Holder sourcesHolder = isDetailsHasSameSources()
+                ? (showMainSources() && detailsShown == null ? main : null)
+                : (show ? details : (showMainSources() ? main : null));
+
+        if (sourcesHolder != null) {
+            showSources(
+                    sourcesHolder.chart.sources, sourcesHolder.chartView.getSourcesVisibility());
         }
 
         detailsShown = show;
@@ -165,7 +174,7 @@ public abstract class BaseChartWidget extends FrameLayout {
         }
     }
 
-    private void animateVisibility(View view, boolean show, boolean animate) {
+    void animateVisibility(View view, boolean show, boolean animate) {
         if (animate) {
             if (show) {
                 view.setVisibility(VISIBLE);

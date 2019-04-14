@@ -10,21 +10,21 @@ import com.alexvasilkov.telegram.chart.domain.Chart;
 
 public class FollowersWidget extends BaseChartWidget {
 
-    private final Type type = Type.FOLLOWERS;
+    private static final Type TYPE = Type.FOLLOWERS;
 
     public FollowersWidget(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         main.titleText.setText(R.string.chart_title_followers);
 
-        ChartsLoader.loadChart(context, Type.FOLLOWERS, this::setMainChart);
+        ChartsLoader.loadChart(context, TYPE, this::setMainChart);
     }
 
     @Override
     void onRequestDetails(long date) {
         final long[] dates = new long[] { date };
         final int detailsDays = 7;
-        ChartsLoader.loadDetails(getContext(), type, dates, detailsDays, this::onDetailsLoaded);
+        ChartsLoader.loadDetails(getContext(), TYPE, dates, detailsDays, this::onDetailsLoaded);
     }
 
     private void onDetailsLoaded(Chart[] charts) {

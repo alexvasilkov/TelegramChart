@@ -45,9 +45,9 @@ public class LabelsHelper {
         final Resolution resolution = chart.resolution;
         final Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
-        // If grouping is not specified or chart range does not include at least 3 groups
+        // If grouping is not specified or chart range does not include at least 1 group
         // then we'll return an array of evenly distributed levels.
-        if (groupBy == null || toDate < groupBy.add(cal, fromDate, 3)) {
+        if (groupBy == null || toDate < groupBy.add(cal, fromDate, 1)) {
             return computeEvenlyDistributedLevels(size);
         }
 

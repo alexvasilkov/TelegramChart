@@ -808,6 +808,7 @@ public class ChartView extends BaseChartView {
 
             parent = null;
             holder = null;
+            shift = 0f;
             shown = false;
         }
     }

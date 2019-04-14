@@ -132,12 +132,9 @@ public class ChartsLoader {
             // No details for this chart, just getting a part of original chart
             initCache(appContext);
             chart = cache.get(type);
-            if (chart == null) {
-                throw new NullPointerException();
-            }
         }
 
-        return subChart(chart, from, to);
+        return chart == null ? null : subChart(chart, from, to);
     }
 
     private static Chart loadChartDetails(Context appContext, Type type, long date)
@@ -155,6 +152,10 @@ public class ChartsLoader {
     }
 
     private static Chart mergeCharts(List<Chart> charts) {
+        if (charts.isEmpty()) {
+            return null;
+        }
+
         final Chart first = charts.get(0);
 
         int size = 0;
@@ -241,7 +242,7 @@ public class ChartsLoader {
 
 
     private static void fixSources(Chart chart, Type type) {
-        if (type.namesOverride != null) {
+        if (chart != null && type.namesOverride != null) {
             for (int i = 0, size = chart.sources.length; i < size; i++) {
                 Source source = chart.sources[i];
                 chart.sources[i] = new Source(type.namesOverride[i], source.color, source.y);
