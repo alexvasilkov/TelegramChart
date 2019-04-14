@@ -5,6 +5,7 @@ import android.os.Build;
 
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.domain.Chart.Source;
+import com.alexvasilkov.telegram.chart.domain.Resolution;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,7 +22,7 @@ class ChartParser {
 
     private ChartParser() {} // No instances
 
-    static Chart parse(int id, String json) throws JSONException {
+    static Chart parse(int id, Resolution resolution, String json) throws JSONException {
         final JSONObject object = new JSONObject(json);
         final Object[][] columns = toArrayOfArrays(object.getJSONArray("columns"));
         final Map<String, String> types = toMap(object.getJSONObject("types"));
@@ -74,7 +75,7 @@ class ChartParser {
         }
 
         final Source[] sourcesArr = sources.toArray(new Source[0]);
-        return new Chart(id, parseType(type, yScaled), xValues, sourcesArr);
+        return new Chart(id, parseType(type, yScaled), resolution, xValues, sourcesArr);
     }
 
     private static Chart.Type parseType(String type, boolean yScaled) {

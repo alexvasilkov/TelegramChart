@@ -92,7 +92,9 @@ public abstract class Painter {
             case BARS:
                 return new BarsPainter(chart);
             case AREA:
-                return new AreaPainter(chart);
+                return new AreaPainter(chart, false);
+            case AREA_SQUARE:
+                return new AreaPainter(chart, true);
             default:
                 return new LinesPainter(chart); // Fallback to line painter
         }

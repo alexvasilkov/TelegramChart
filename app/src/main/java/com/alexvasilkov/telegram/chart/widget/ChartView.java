@@ -301,8 +301,8 @@ public class ChartView extends BaseChartView {
         maxIntervals = Math.max(maxIntervals, 2f); // Assuming screen must fit at least 3 labels
         xLabelsHelper.init(maxIntervals);
 
-        final float[] levels = xLabelsHelper.computeLabelsLevels(chart.x[0],
-                chart.x[chart.x.length - 1]);
+        final float[] levels = xLabelsHelper.computeLabelsLevels(
+                chart.x[0], chart.x[chart.x.length - 1], chart.resolution);
 
         for (int i = 0; i < size; i++) {
             // Inverting levels position according to direction

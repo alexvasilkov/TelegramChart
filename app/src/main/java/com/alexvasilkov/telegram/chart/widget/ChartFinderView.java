@@ -15,13 +15,14 @@ import android.view.MotionEvent;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.domain.GroupBy;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
-import com.alexvasilkov.telegram.chart.utils.TimeInterval;
 import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
 import java.util.Calendar;
+import java.util.TimeZone;
 
 public class ChartFinderView extends BaseChartView {
 
@@ -50,12 +51,12 @@ public class ChartFinderView extends BaseChartView {
 
     private ChartView chartView;
 
-    private TimeInterval timeInterval;
-    private boolean snapToTimeInterval;
-    private int initialTimeIntervals;
-    private int minTimeIntervals;
-    private int maxTimeIntervals;
-    private final Calendar calendar = Calendar.getInstance();
+    private GroupBy groupBy;
+    private boolean snapToGroup;
+    private int initialGroupsCount;
+    private int minGroupsCount;
+    private int maxGroupsCount;
+    private final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
 
     public ChartFinderView(Context context, AttributeSet attrs) {
@@ -119,13 +120,12 @@ public class ChartFinderView extends BaseChartView {
     }
 
 
-    public void setTimeIntervals(
-            TimeInterval interval, int min, int max, int initial, boolean snap) {
-        timeInterval = interval;
-        initialTimeIntervals = initial;
-        minTimeIntervals = min;
-        maxTimeIntervals = max;
-        snapToTimeInterval = snap;
+    public void groupBy(GroupBy groupBy, int min, int max, int initial, boolean snap) {
+        this.groupBy = groupBy;
+        initialGroupsCount = initial;
+        minGroupsCount = min;
+        maxGroupsCount = max;
+        snapToGroup = snap;
     }
 
     @Override
@@ -184,8 +184,8 @@ public class ChartFinderView extends BaseChartView {
     }
 
     private void onUpOrCancelEvent() {
-        if (selectedHandle != null && timeInterval != null && snapToTimeInterval) {
-            snapToInterval(handleRange, handleRangeEnd, timeInterval, selectedHandle);
+        if (selectedHandle != null && groupBy != null && snapToGroup) {
+            snapToGroups(handleRange, handleRangeEnd, groupBy, selectedHandle);
             animateHandle();
         }
 
@@ -211,9 +211,7 @@ public class ChartFinderView extends BaseChartView {
         final float currentScale = width / (xRange.size() - 1f);
         final float distancePos = distanceX / currentScale;
 
-        final float maxIntervalsPerScreen = chartView.xLabelsHelper.getMaxIntervals();
-        final float minHandleRange =
-                Math.max(handlesMinDistance / currentScale, maxIntervalsPerScreen);
+        final float minHandleRange = handlesMinDistance / currentScale;
 
         float handleFrom = handleRange.from;
         float handleTo = handleRange.to;
@@ -230,13 +228,13 @@ public class ChartFinderView extends BaseChartView {
             handleFrom = chartRange.fit(handleFrom);
 
             // TODO: Find a way to allow zooming a bit more than allowed to handle edges
-            if (timeInterval != null) {
+            if (groupBy != null) {
                 // Keeping left handle within intervals bounds
-                final long toTime = chart.x[(int) handleTo];
-                final long minTime = timeInterval.add(calendar, toTime, maxTimeIntervals, -1);
-                final long maxTime = timeInterval.add(calendar, toTime, minTimeIntervals, -1);
-                final float min = handleTo + timeInterval.distance(toTime, minTime);
-                final float max = handleTo + timeInterval.distance(toTime, maxTime);
+                final long toTime = chart.x[Math.round(handleTo)];
+                final long minTime = groupBy.add(calendar, toTime, -maxGroupsCount);
+                final long maxTime = groupBy.add(calendar, toTime, -minGroupsCount);
+                final float min = handleTo + chart.resolution.distance(toTime, minTime);
+                final float max = handleTo + chart.resolution.distance(toTime, maxTime);
 
                 handleFrom = handleFrom < min ? min : (handleFrom > max ? max : handleFrom);
             }
@@ -251,13 +249,13 @@ public class ChartFinderView extends BaseChartView {
 
             handleTo = chartRange.fit(handleTo);
 
-            if (timeInterval != null) {
+            if (groupBy != null) {
                 // Keeping right handle within intervals bounds
-                final long fromTime = chart.x[(int) handleFrom];
-                final long minTime = timeInterval.add(calendar, fromTime, minTimeIntervals, 1);
-                final long maxTime = timeInterval.add(calendar, fromTime, maxTimeIntervals, 1);
-                final float min = handleFrom + timeInterval.distance(fromTime, minTime);
-                final float max = handleFrom + timeInterval.distance(fromTime, maxTime);
+                final long fromTime = chart.x[Math.round(handleFrom)];
+                final long minTime = groupBy.add(calendar, fromTime, minGroupsCount);
+                final long maxTime = groupBy.add(calendar, fromTime, maxGroupsCount);
+                final float min = handleFrom + chart.resolution.distance(fromTime, minTime);
+                final float max = handleFrom + chart.resolution.distance(fromTime, maxTime);
 
                 handleTo = handleTo < min ? min : (handleTo > max ? max : handleTo);
             }
@@ -300,52 +298,54 @@ public class ChartFinderView extends BaseChartView {
     private void setInitialHandle() {
         handleRange.set(chartRange);
 
-        if (timeInterval != null) {
+        if (groupBy != null) {
             // It time interval is set we'll start with max possible range from right side
-            handleRange.from = handleRange.to - initialTimeIntervals * timeInterval.steps;
-            if (snapToTimeInterval) {
-                snapToInterval(handleRange, handleRange, timeInterval, HANDLE_BOTH);
+            final float initialDistance = initialGroupsCount * groupBy.stepsCount(chart.resolution);
+            handleRange.from = chartRange.fit(handleRange.to - initialDistance);
+            if (snapToGroup) {
+                snapToGroups(handleRange, handleRange, groupBy, HANDLE_BOTH);
             }
         }
     }
 
-    private void snapToInterval(Range range, Range dst, TimeInterval interval, int selectedHandle) {
+    private void snapToGroups(Range range, Range dst, GroupBy groupBy, int selectedHandle) {
         final long[] times = chart.x;
 
-        int newFrom = snapToClosestIntervalStart(times, range.from, interval);
-        int newTo = snapToClosestIntervalStart(times, range.to, interval);
+        int newFrom = snapToClosestGroupStart(times, range.from, groupBy);
+        int newTo = snapToClosestGroupStart(times, range.to, groupBy);
 
-        final int intervals = interval.count(times[newFrom], times[newTo]);
+        final int intervals = Math.round(groupBy.distance(times[newFrom], times[newTo]));
+        final int stepsPerGroup = groupBy.stepsCount(chart.resolution);
 
         // We need to make sure we are occupying a valid number of intervals
-        if (intervals < minTimeIntervals) {
+        if (intervals < minGroupsCount) {
             if (selectedHandle == HANDLE_LEFT) {
-                newFrom = snapToClosestIntervalStart(times, newFrom - interval.steps, interval);
+                newFrom = snapToClosestGroupStart(times, newFrom - stepsPerGroup, groupBy);
             } else {
-                newTo = snapToClosestIntervalStart(times, newTo + interval.steps, interval);
+                newTo = snapToClosestGroupStart(times, newTo + stepsPerGroup, groupBy);
             }
-        } else if (intervals > maxTimeIntervals) {
+        } else if (intervals > maxGroupsCount) {
             if (selectedHandle == HANDLE_LEFT) {
-                newFrom = snapToClosestIntervalStart(times, newFrom + interval.steps, interval);
+                newFrom = snapToClosestGroupStart(times, newFrom + stepsPerGroup, groupBy);
             } else {
-                newTo = snapToClosestIntervalStart(times, newTo - interval.steps, interval);
+                newTo = snapToClosestGroupStart(times, newTo - stepsPerGroup, groupBy);
             }
         }
 
         dst.set(newFrom, newTo);
     }
 
-    private int snapToClosestIntervalStart(long[] times, float pos, TimeInterval interval) {
+    private int snapToClosestGroupStart(long[] times, float pos, GroupBy groupBy) {
         final int posExact = Math.round(chartRange.fit(pos));
-        final int minPos = getNextIntervalStart(times[posExact], posExact, interval, -1);
-        final int maxPos = getNextIntervalStart(times[posExact], posExact, interval, 1);
+        final int minPos = getNextGroupStart(times[posExact], posExact, groupBy, -1);
+        final int maxPos = getNextGroupStart(times[posExact], posExact, groupBy, 1);
         final float state = (pos - minPos) / (float) (maxPos - minPos);
         return state < 0.5f ? minPos : maxPos;
     }
 
-    private int getNextIntervalStart(long time, int pos, TimeInterval interval, int direction) {
-        final long nextStart = interval.getStart(calendar, time, direction);
-        final float nextPos = pos + interval.distance(time, nextStart);
+    private int getNextGroupStart(long time, int pos, GroupBy groupBy, int direction) {
+        final long nextStart = groupBy.getClosestStart(calendar, time, direction);
+        final float nextPos = pos + chart.resolution.distance(time, nextStart);
         return Math.round(chartRange.fit(nextPos));
     }
 

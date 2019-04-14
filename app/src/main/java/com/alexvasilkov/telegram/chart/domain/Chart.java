@@ -1,17 +1,17 @@
 package com.alexvasilkov.telegram.chart.domain;
 
-import java.util.List;
-
 public class Chart {
 
     public final int id;
     public final Type type;
+    public final Resolution resolution;
     public final long[] x;
     public final Source[] sources;
 
-    public Chart(int id, Type type, long[] x, Source[] sources) {
+    public Chart(int id, Type type, Resolution resolution, long[] x, Source[] sources) {
         this.id = id;
         this.type = type;
+        this.resolution = resolution;
         this.x = x;
         this.sources = sources;
     }
@@ -29,7 +29,7 @@ public class Chart {
     }
 
     public enum Type {
-        LINES, LINES_INDEPENDENT, BARS, AREA
+        LINES, LINES_INDEPENDENT, BARS, AREA, AREA_SQUARE
     }
 
 }

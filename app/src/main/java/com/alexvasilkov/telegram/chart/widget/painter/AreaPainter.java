@@ -18,6 +18,8 @@ class AreaPainter extends Painter {
 
     private static final float OPTIMIZATION_FACTOR = 2f;
 
+    private final boolean square;
+
     private final Paint pathPaint = new Paint(ChartStyle.PAINT_FLAGS);
     private final Path pathFill = new Path();
 
@@ -28,8 +30,10 @@ class AreaPainter extends Painter {
     private final float[] scales;
     private final float[] sums;
 
-    AreaPainter(Chart chart) {
+    AreaPainter(Chart chart, boolean square) {
         super(chart);
+
+        this.square = square;
 
         scales = new float[chart.x.length];
         sums = new float[chart.x.length];
@@ -146,7 +150,12 @@ class AreaPainter extends Painter {
                     if (i == from) {
                         pathFill.moveTo(i, sums[i]);
                     } else {
-                        pathFill.lineTo(i, sums[i]);
+                        if (square) {
+                            pathFill.lineTo(i, sums[i - 1]);
+                            pathFill.lineTo(i, sums[i]);
+                        } else {
+                            pathFill.lineTo(i, sums[i]);
+                        }
                     }
                 }
             }

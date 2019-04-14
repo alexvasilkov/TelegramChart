@@ -19,8 +19,8 @@ import com.alexvasilkov.telegram.chart.app.utils.Formatters;
 import com.alexvasilkov.telegram.chart.app.widgets.PopupAdapter;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.domain.Chart.Source;
+import com.alexvasilkov.telegram.chart.domain.GroupBy;
 import com.alexvasilkov.telegram.chart.utils.ColorUtils;
-import com.alexvasilkov.telegram.chart.utils.TimeInterval;
 import com.alexvasilkov.telegram.chart.widget.ChartFinderView;
 import com.alexvasilkov.telegram.chart.widget.ChartView;
 
@@ -70,7 +70,7 @@ public abstract class BaseChartWidget extends FrameLayout {
         });
 
         finderView.attachTo(chartView);
-        finderView.setTimeIntervals(TimeInterval.MONTH_BY_DAYS, 2, 12, 4, false);
+        finderView.groupBy(GroupBy.MONTH, 2, 12, 4, false);
         finderView.setChart(chart);
         showSources(chart.sources);
     }

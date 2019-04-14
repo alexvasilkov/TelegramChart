@@ -1,9 +1,11 @@
 package com.alexvasilkov.telegram.chart.utils;
 
+import com.alexvasilkov.telegram.chart.domain.Resolution;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 
 public class LabelsHelper {
 
@@ -11,10 +13,6 @@ public class LabelsHelper {
 
     public void init(float maxIntervals) {
         this.maxIntervals = maxIntervals;
-    }
-
-    public float getMaxIntervals() {
-        return maxIntervals;
     }
 
     private int getFitIntervals(float size) {
@@ -29,15 +27,16 @@ public class LabelsHelper {
     /**
      * Returns array of evenly distributed levels for each label.
      */
-    public float[] computeLabelsLevels(int size) {
+    private float[] computeLabelsLevels(int size) {
         return computeLevels(size, getFitIntervals(size));
     }
 
-    public float[] computeLabelsLevels(final long fromDate, final long toDate) {
+    public float[] computeLabelsLevels(
+            final long fromDate, final long toDate, Resolution resolution) {
         // Computing total days count
-        final int size = countDays(fromDate, toDate) + 1;
+        final int size = Math.round(resolution.distance(fromDate, toDate)) + 1;
 
-        final Calendar cal = Calendar.getInstance();
+        final Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
         // Computing beginning of the first month
         cal.setTimeInMillis(fromDate);
@@ -50,7 +49,7 @@ public class LabelsHelper {
         cal.set(Calendar.DAY_OF_MONTH, 1);
         final long toDateExt = cal.getTimeInMillis();
 
-        final int sizeExt = countDays(fromDateExt, toDateExt) + 1;
+        final int sizeExt = Math.round(resolution.distance(fromDateExt, toDateExt)) + 1;
 
         final List<Integer> monthsPos = new ArrayList<>();
 
@@ -65,6 +64,10 @@ public class LabelsHelper {
 
         final int monthsSize = monthsPos.size();
         final int monthSizeMin = monthsSize - 2;
+
+        if (monthSizeMin <= 0) {
+            return computeLabelsLevels(size);
+        }
 
         final int monthsIntervals = getFitIntervals(monthSizeMin);
         final float[] monthsLevelsTmp = computeLevels(monthSizeMin, monthsIntervals);
@@ -93,7 +96,7 @@ public class LabelsHelper {
         }
 
         final float[] result = new float[size];
-        final int daysOffset = countDays(fromDateExt, fromDate);
+        final int daysOffset = Math.round(resolution.distance(fromDateExt, fromDate));
         System.arraycopy(levels, daysOffset, result, 0, size);
         return result;
     }
@@ -141,11 +144,6 @@ public class LabelsHelper {
             fillLevelsInHalves(levels, level, from, mid);
             fillLevelsInHalves(levels, level, mid, to);
         }
-    }
-
-
-    private static int countDays(long from, long to) {
-        return (int) Math.round((to - from) / (24 * 60 * 60 * 1000.0));
     }
 
 }
