@@ -4,12 +4,15 @@ import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Matrix;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.alexvasilkov.telegram.chart.R;
+import com.alexvasilkov.telegram.chart.app.utils.Colors;
 import com.alexvasilkov.telegram.chart.data.ChartsLoader;
 import com.alexvasilkov.telegram.chart.data.ChartsLoader.Type;
 import com.alexvasilkov.telegram.chart.domain.Chart;
@@ -26,13 +29,16 @@ public class AppsWidget extends BaseChartWidget {
 
     private static final Type TYPE = Type.APPS;
 
+    private final SourcePopupAdapter detailsPopupAdapter;
+
     public AppsWidget(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         main.titleText.setText(R.string.chart_title_apps);
         main.chartView.setGuideCount(5);
 
-        details.chartView.setPopupAdapterSource(new SourcePopupAdapter(formatters::formatNumber));
+        detailsPopupAdapter = new SourcePopupAdapter(formatters::formatNumber);
+        details.chartView.setPopupAdapterSource(detailsPopupAdapter);
 
         ChartsLoader.loadChart(context, TYPE, this::setMainChart);
     }
@@ -81,13 +87,30 @@ public class AppsWidget extends BaseChartWidget {
         }
     }
 
+    @Override
+    public void setColors(Colors colors) {
+        super.setColors(colors);
+
+        detailsPopupAdapter.setColors(colors.popup, colors.text);
+        details.chartView.updatePopupSource();
+    }
 
     static class SourcePopupAdapter extends PopupAdapterSource<SourcePopupAdapter.ViewHolder> {
 
         private final FormatterValue formatter;
 
+        private boolean colorsSet;
+        private int popupColor;
+        private int textColor;
+
         SourcePopupAdapter(FormatterValue formatter) {
             this.formatter = formatter;
+        }
+
+        void setColors(int popup, int text) {
+            this.colorsSet = true;
+            this.popupColor = popup;
+            this.textColor = text;
         }
 
         @Override
@@ -98,6 +121,15 @@ public class AppsWidget extends BaseChartWidget {
         @Override
         protected void bindView(
                 ViewHolder holder, Chart chart, int sourceInd, int from, int to, boolean animate) {
+
+            if (colorsSet) {
+                holder.name.setTextColor(textColor);
+
+                final Drawable back = holder.itemView.getBackground().mutate();
+                back.setColorFilter(popupColor, PorterDuff.Mode.MULTIPLY);
+                holder.itemView.setBackground(back);
+            }
+
             final Source source = chart.sources[sourceInd];
             int total = 0;
             for (int i = from; i < to; i++) {

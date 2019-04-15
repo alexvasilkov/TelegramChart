@@ -24,7 +24,7 @@
     <color name="finder_foreground">#99E3EFFA</color>
     <color name="finder_frame">#8086A9C4</color>
 
-    <color name="popup">#D4FFFFFF</color>
+    <color name="popup">#E0FFFFFF</color>
 
 
     <!-- Night theme -->
@@ -46,6 +46,6 @@
     <color name="finder_foreground_night">#99304259</color>
     <color name="finder_frame_night">#806F899E</color>
 
-    <color name="popup_night">#DD1c2533</color>
+    <color name="popup_night">#E01c2533</color>
 
 </resources>
