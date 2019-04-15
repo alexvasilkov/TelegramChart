@@ -312,7 +312,7 @@ public abstract class BaseChartWidget extends FrameLayout {
         holder.finderView.setColors(colors.finderForeground, colors.finderFrame, colors.background);
 
         holder.popupAdapter.setColors(colors.popup, colors.text);
-        holder.chartView.updateSelectionPopupContent();
+        holder.chartView.updatePopupX();
     }
 
     private void showSources(Source[] sources, boolean[] states) {
@@ -432,7 +432,7 @@ public abstract class BaseChartWidget extends FrameLayout {
             this.finderView = finderView;
             this.popupAdapter = popupAdapter;
 
-            chartView.setSelectionXPopupAdapter(popupAdapter);
+            chartView.setPopupAdapterX(popupAdapter);
             finderView.attachTo(chartView);
 
             chartView.setYLabelFormatter(formatters::formatNumberAbbreviate);
@@ -443,7 +443,7 @@ public abstract class BaseChartWidget extends FrameLayout {
                 rangeText.setText(formatters.formatRangeLong(from, to));
             });
 
-            popupAdapter.setValueFormat((value, max) -> formatters.formatNumber(value));
+            popupAdapter.setValueFormat(formatters::formatNumber);
         }
     }
 

@@ -21,7 +21,7 @@ import com.alexvasilkov.telegram.chart.widget.ChartView;
 
 import java.util.Locale;
 
-public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder> {
+public class PopupAdapter extends ChartView.PopupAdapterX<PopupAdapter.ViewHolder> {
 
     private static final float MIN_VALUE_ALPHA = 0.33f;
 
@@ -71,7 +71,6 @@ public class PopupAdapter extends ChartView.PopupAdapter<PopupAdapter.ViewHolder
             holder.arrow.setVisibility(View.VISIBLE);
         }
 
-        holder.itemsTable.setColumnStretchable(1, true);
         holder.itemsTable.setColumnCollapsed(0, !showPercent(chart));
 
         return holder;

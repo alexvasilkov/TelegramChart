@@ -9,6 +9,9 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.Build;
+import android.transition.AutoTransition;
+import android.transition.TransitionManager;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
@@ -70,7 +73,10 @@ public class ChartView extends BaseChartView {
     private int selectedChartX = -1;
     private boolean isTemporarySelectionX;
     private boolean isSelectionXWasShown;
-    private PopupAdapter<?> selectionXPopupAdapter;
+    private PopupAdapterX<?> popupAdapterX;
+
+    private int selectedSourceInd = -1;
+    private PopupAdapterSource<?> popupAdapterSource;
 
 
     public ChartView(Context context, AttributeSet attrs) {
@@ -177,9 +183,15 @@ public class ChartView extends BaseChartView {
         yGuidesOld.clear();
 
         clearSelectedPosX();
-        if (selectionXPopupAdapter != null) {
-            selectionXPopupAdapter.clear();
-            selectionXPopupAdapter.init(this, newChart);
+        if (popupAdapterX != null) {
+            popupAdapterX.clear();
+            popupAdapterX.init(this, newChart);
+        }
+
+        selectedSourceInd = -1;
+        if (popupAdapterSource != null) {
+            popupAdapterSource.clear();
+            popupAdapterSource.init(this, newChart);
         }
 
         super.setChart(newChart);
@@ -190,26 +202,36 @@ public class ChartView extends BaseChartView {
         super.setSourceVisibility(visibility, animate);
 
         // We need to update popup since sources visibility is changed
-        updateSelectionPopupContent();
+        updatePopupX();
     }
 
-    public void setSelectionXPopupAdapter(PopupAdapter<?> adapter) {
-        selectionXPopupAdapter = adapter;
+    public void setPopupAdapterX(PopupAdapterX<?> adapter) {
+        popupAdapterX = adapter;
+    }
+
+    public void setPopupAdapterSource(PopupAdapterSource<?> adapter) {
+        popupAdapterSource = adapter;
     }
 
     @Override
     public void setScaleX(float scaleX) {
         super.setScaleX(scaleX);
-        if (selectionXPopupAdapter != null) {
-            selectionXPopupAdapter.scaleX(1f / scaleX);
+        if (popupAdapterX != null) {
+            popupAdapterX.scaleX(1f / scaleX);
+        }
+        if (popupAdapterSource != null) {
+            popupAdapterSource.scaleX(1f / scaleX);
         }
     }
 
     @Override
     public void setScaleY(float scaleY) {
         super.setScaleY(scaleY);
-        if (selectionXPopupAdapter != null) {
-            selectionXPopupAdapter.scaleY(1f / scaleY);
+        if (popupAdapterX != null) {
+            popupAdapterX.scaleY(1f / scaleY);
+        }
+        if (popupAdapterSource != null) {
+            popupAdapterSource.scaleY(1f / scaleY);
         }
     }
 
@@ -260,6 +282,8 @@ public class ChartView extends BaseChartView {
         if (!isSmallChange) {
             prepareYGuides(fromY, toY);
         }
+
+        updatePopupSource();
     }
 
     private void prepareXLabels() {
@@ -394,15 +418,16 @@ public class ChartView extends BaseChartView {
 
     private boolean onSingleTapEvent(float posX, float posY) {
         if (painter != null) {
-            final int selectedSource = painter.pickSource(getChartPosition(), posX, posY);
-
-            if (selectedSource >= 0 && selectedSource != getSelectedSourceInd()) {
-                setSelectedSourceInd(selectedSource);
-                return true;
+            int selectedSource = painter.pickSource(getChartPosition(), posX, posY);
+            if (selectedSource == selectedSourceInd) {
+                selectedSource = -1;
             }
 
-            if (getSelectedSourceInd() >= 0) {
-                setSelectedSourceInd(-1);
+            if (selectedSource != selectedSourceInd) {
+                selectedSourceInd = selectedSource;
+                painter.setSelectedSource(selectedSource);
+                requestAnimation();
+                updatePopupSource();
                 return true;
             }
         }
@@ -446,13 +471,13 @@ public class ChartView extends BaseChartView {
         selectedChartX = Math.round(chartRange.fit(chartX));
         setSelectedPointX(selectedChartX);
 
-        updateSelectionPopupContent();
+        updatePopupX();
     }
 
     private void clearSelectedPosX() {
         selectedPosX = Float.NaN;
         selectedChartX = -1;
-        updateSelectionPopupContent();
+        updatePopupX();
         setSelectedPointX(-1);
     }
 
@@ -494,7 +519,8 @@ public class ChartView extends BaseChartView {
         }
         setYGuidesVisibility(now);
 
-        updateSelectionPopupPos();
+        updatePosOfPopupX();
+        updatePosOfPopupSource();
     }
 
     @Override
@@ -539,30 +565,48 @@ public class ChartView extends BaseChartView {
         }
     }
 
-    public void updateSelectionPopupContent() {
-        if (selectionXPopupAdapter == null) {
+    public void updatePopupX() {
+        if (popupAdapterX == null) {
             return;
         }
         if (selectedChartX != -1) {
-            updateSelectionPopupPos();
-            selectionXPopupAdapter.show(chart, getSourcesVisibility(), selectedChartX);
+            updatePosOfPopupX();
+            popupAdapterX.show(chart, getSourcesVisibility(), selectedChartX);
         } else {
-            selectionXPopupAdapter.hide();
+            popupAdapterX.hide();
         }
     }
 
-    private void updateSelectionPopupPos() {
-        if (selectionXPopupAdapter == null) {
-            return;
-        }
-        if (selectedChartX != -1) {
+    private void updatePosOfPopupX() {
+        if (popupAdapterX != null && selectedChartX != -1) {
             // Moving popup view to correct position
             final float posX = ChartMath.mapX(matrix, selectedChartX);
             final Rect chartPos = getChartPosition();
             final int chartMid = (chartPos.left + chartPos.right) / 2;
             float shift = posX > chartMid ? 1.07f : -0.07f;
 
-            selectionXPopupAdapter.setPosition(posX - getPaddingLeft(), shift);
+            popupAdapterX.setPosition(posX - getPaddingLeft(), shift);
+        }
+    }
+
+    public void updatePopupSource() {
+        if (popupAdapterSource == null) {
+            return;
+        }
+        if (selectedSourceInd != -1) {
+            updatePosOfPopupSource();
+            popupAdapterSource.show(
+                    chart, selectedSourceInd, Math.round(xRange.from), Math.round(xRange.to));
+        } else {
+            popupAdapterSource.hide();
+        }
+    }
+
+    private void updatePosOfPopupSource() {
+        if (popupAdapterSource != null && selectedSourceInd != -1) {
+            // Moving popup view to correct position
+            final int gravity = painter.getSourcePopupGravity(selectedSourceInd);
+            popupAdapterSource.setPosition(gravity);
         }
     }
 
@@ -788,17 +832,72 @@ public class ChartView extends BaseChartView {
     }
 
 
-    public static abstract class PopupAdapter<T extends PopupViewHolder> {
-        private static final long ANIMATION_DURATION = 150L;
+    public static abstract class PopupAdapterX<T extends PopupViewHolder>
+            extends PopupAdapterBase<T> {
 
-        private ViewGroup parent;
-
-        private T holder;
-        private boolean shown;
-        private float shift;
+        private float shiftLeft;
 
         protected abstract void bindView(
                 T holder, Chart chart, boolean[] visibilities, int index, boolean animate);
+
+        void show(Chart chart, boolean[] visibilities, int index) {
+            bindView(holder, chart, visibilities, index, shown);
+            show();
+        }
+
+        void setPosition(float left, float leftShift) {
+            ((MarginLayoutParams) holder.itemView.getLayoutParams()).leftMargin = Math.round(left);
+            holder.itemView.requestLayout();
+
+            final float newShiftLeft = -holder.itemView.getWidth() * leftShift;
+            if (shiftLeft != newShiftLeft) {
+                shiftLeft = newShiftLeft;
+                if (shown) {
+                    holder.itemView.animate().translationX(shiftLeft);
+                } else {
+                    holder.itemView.animate().cancel();
+                    holder.itemView.setTranslationX(shiftLeft);
+                }
+            }
+        }
+
+        @Override
+        void clear() {
+            super.clear();
+            shiftLeft = 0f;
+        }
+    }
+
+    public static abstract class PopupAdapterSource<T extends PopupViewHolder>
+            extends PopupAdapterBase<T> {
+
+        protected abstract void bindView(
+                T holder, Chart chart, int source, int from, int to, boolean animate);
+
+        void show(Chart chart, int source, int from, int to) {
+            bindView(holder, chart, source, from, to, shown);
+            show();
+        }
+
+        void setPosition(int gravity) {
+            ((LayoutParams) holder.itemView.getLayoutParams()).gravity = gravity;
+            parent.requestLayout();
+
+            if (Build.VERSION.SDK_INT >= 19) {
+                AutoTransition transition = new AutoTransition();
+                transition.setDuration(ANIMATION_DURATION);
+                TransitionManager.beginDelayedTransition(parent, transition);
+            }
+        }
+    }
+
+    private static abstract class PopupAdapterBase<T extends PopupViewHolder> {
+        static final long ANIMATION_DURATION = 150L;
+
+        ViewGroup parent;
+
+        T holder;
+        boolean shown;
 
         protected abstract T createView(ViewGroup parent, Chart chart);
 
@@ -812,9 +911,7 @@ public class ChartView extends BaseChartView {
             holder.itemView.setVisibility(INVISIBLE);
         }
 
-        void show(Chart chart, boolean[] visibilities, int index) {
-            bindView(holder, chart, visibilities, index, shown);
-
+        void show() {
             if (!shown) {
                 holder.itemView.setVisibility(VISIBLE);
                 holder.itemView.animate()
@@ -840,21 +937,6 @@ public class ChartView extends BaseChartView {
             }
         }
 
-        void setPosition(float left, float leftShift) {
-            ((MarginLayoutParams) holder.itemView.getLayoutParams()).leftMargin = Math.round(left);
-            holder.itemView.requestLayout();
-
-            final float newShift = -holder.itemView.getWidth() * leftShift;
-            if (shift != newShift) {
-                shift = newShift;
-                if (shown) {
-                    holder.itemView.animate().translationX(shift);
-                } else {
-                    holder.itemView.animate().cancel();
-                    holder.itemView.setTranslationX(shift);
-                }
-            }
-        }
 
         void scaleX(float scaleX) {
             if (holder != null) {
@@ -868,14 +950,13 @@ public class ChartView extends BaseChartView {
             }
         }
 
-        private void clear() {
+        void clear() {
             if (holder != null) {
                 parent.removeView(holder.itemView);
             }
 
             parent = null;
             holder = null;
-            shift = 0f;
             shown = false;
         }
     }

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Chart.Popup"
+    android:layout_marginLeft="12dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginRight="12dp"
+    android:layout_marginBottom="16dp"
+    android:paddingLeft="12dp"
+    android:paddingBottom="9dp"
+    tools:ignore="RtlHardcoded,RtlSymmetry"
+    tools:layout_gravity="center">
+
+    <TextView
+        android:id="@+id/chart_popup_source_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        tools:text="Joined" />
+
+    <TextView
+        android:id="@+id/chart_popup_source_value"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="right"
+        android:textSize="13sp"
+        tools:text="122"
+        tools:textColor="@color/primaryDark" />
+
+</FrameLayout>

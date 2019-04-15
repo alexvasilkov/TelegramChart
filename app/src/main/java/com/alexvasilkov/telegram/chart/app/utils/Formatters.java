@@ -26,7 +26,8 @@ public class Formatters {
     }
 
 
-    public String formatNumber(long value) {
+    @SuppressWarnings("unused")
+    public String formatNumber(long value, int max) {
         return yFormat.format(value);
     }
 

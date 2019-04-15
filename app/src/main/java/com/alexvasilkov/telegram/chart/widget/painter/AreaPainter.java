@@ -69,7 +69,6 @@ class AreaPainter extends Painter {
             int to,
             float[] sourcesStates,
             int selectedPos,
-            int selectedSourceInd,
             boolean simplified
     ) {
 

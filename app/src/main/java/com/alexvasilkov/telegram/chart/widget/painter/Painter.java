@@ -56,7 +56,6 @@ public abstract class Painter {
             int to,
             float[] sourcesStates,
             int selectedPos,
-            int selectedSourceInd,
             boolean simplified
     );
 
@@ -74,6 +73,9 @@ public abstract class Painter {
         return -1;
     }
 
+    public void setSelectedSource(int selected) {}
+
+
     public boolean hasIndependentSources() {
         for (float scale : sourcesScales) {
             if (scale != 1f) {
@@ -85,6 +87,10 @@ public abstract class Painter {
 
     public float[] getSourcesScales() {
         return sourcesScales;
+    }
+
+    public int getSourcePopupGravity(int sourceInd) {
+        return 0;
     }
 
 
