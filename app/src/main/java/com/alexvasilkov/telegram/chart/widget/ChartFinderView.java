@@ -11,17 +11,18 @@ import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
 import android.view.GestureDetector.SimpleOnGestureListener;
-import android.view.Gravity;
 import android.view.MotionEvent;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.domain.Chart;
+import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.domain.GroupBy;
 import com.alexvasilkov.telegram.chart.utils.AnimatedState;
 import com.alexvasilkov.telegram.chart.utils.ChartMath;
 import com.alexvasilkov.telegram.chart.utils.Range;
 import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -57,7 +58,7 @@ public class ChartFinderView extends BaseChartView {
     private int minGroupsCount;
     private int maxGroupsCount;
     private int initialGroupsCount;
-    private int initialGravity;
+    private long initialDate;
     private final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
 
@@ -108,15 +109,30 @@ public class ChartFinderView extends BaseChartView {
 
     @Override
     public void setChart(Chart chart) {
-        Chart fixedChart = chart;
+        Chart fixedBaseChart = chart;
+        Chart fixedFinderChart = chart;
+
         if (chart.type == Chart.Type.PIE) {
-            // We can't draw PIE type in preview, drawing square area instead
-            fixedChart = chart.setType(Chart.Type.AREA_SQUARE);
+            // We can't draw PIE type in preview, we'll drawing square area instead where
+            // each interval emulates a single value in original chart.
+            // Thus we need to add extra point to the end of the chart.
+
+            final int newSize = chart.x.length + 1;
+            final long[] x = Arrays.copyOf(chart.x, newSize);
+            final Source[] sources = new Source[chart.sources.length];
+
+            for (int i = 0; i < sources.length; i++) {
+                final int[] y = Arrays.copyOf(chart.sources[i].y, newSize);
+                sources[i] = chart.sources[i].setY(y);
+            }
+
+            fixedBaseChart = chart.setX(x).setSources(sources);
+            fixedFinderChart = fixedBaseChart.setType(Chart.Type.AREA_SQUARE);
         }
 
-        super.setChart(fixedChart);
+        super.setChart(fixedFinderChart);
 
-        chartView.setChart(chart);
+        chartView.setChart(fixedBaseChart);
 
         setInitialHandle();
     }
@@ -127,14 +143,16 @@ public class ChartFinderView extends BaseChartView {
         chartView.setSourceVisibility(visibility, animate);
     }
 
-    public void groupBy(
-            GroupBy groupBy, int min, int max, int initial, int initialGravity, boolean snap) {
+    public void groupBy(GroupBy groupBy, int min, int max, int initial, boolean snap) {
         this.groupBy = groupBy;
         this.minGroupsCount = min;
         this.maxGroupsCount = max;
         this.initialGroupsCount = initial;
-        this.initialGravity = initialGravity;
         this.snapToGroup = snap;
+    }
+
+    public void setInitialDate(long initialDate) {
+        this.initialDate = initialDate;
     }
 
     @Override
@@ -308,17 +326,15 @@ public class ChartFinderView extends BaseChartView {
         handleRange.set(chartRange);
 
         if (groupBy != null) {
-            // It time interval is set we'll start with max possible range from right side
             final float initialDistance = initialGroupsCount * groupBy.stepsCount(chart.resolution);
+            float from = chart.resolution.distance(chart.x[0], initialDate);
+            if (from < 0f) {
+                from = 0f;
+            }
 
-            float from = handleRange.from;
-            float to = handleRange.to;
-            if (initialGravity == Gravity.START) {
-                to = from + initialDistance;
-            } else if (initialGravity == Gravity.CENTER) {
-                from = 0.5f * (from + to - initialDistance);
-                to = from + initialDistance;
-            } else {
+            float to = from + initialDistance;
+            if (to > chartRange.to) {
+                to = chartRange.to;
                 from = to - initialDistance;
             }
 

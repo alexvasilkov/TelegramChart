@@ -87,7 +87,7 @@ public abstract class BaseChartWidget extends FrameLayout {
 
         main.chartView.setXLabelFormatter(formatters::formatDateShort);
         main.chartView.groupBy(GroupBy.MONTH);
-        main.finderView.groupBy(GroupBy.MONTH, 2, 12, 4, Gravity.END, false);
+        main.finderView.groupBy(GroupBy.MONTH, 2, 12, 4, false);
         main.popupAdapter.setDateFormat(formatters::formatDateLong);
         main.popupAdapter.setClickListener(
                 (chart, index) -> onRequestDetails(detailsDate = chart.x[index]));
@@ -101,7 +101,7 @@ public abstract class BaseChartWidget extends FrameLayout {
             }
         });
         details.chartView.groupBy(GroupBy.DAY);
-        details.finderView.groupBy(GroupBy.DAY, 1, Integer.MAX_VALUE, 1, Gravity.CENTER, true);
+        details.finderView.groupBy(GroupBy.DAY, 1, Integer.MAX_VALUE, 1, true);
         details.popupAdapter.setDateFormat(formatters::formatTime);
     }
 
@@ -116,6 +116,7 @@ public abstract class BaseChartWidget extends FrameLayout {
     void setMainChart(Chart chart) {
         animate().setDuration(400L).alpha(1f);
         main.chart = chart;
+        main.finderView.setInitialDate(chart.x[chart.x.length - 1]);
         main.finderView.setChart(chart);
 
         showDetails(false, false);
@@ -123,6 +124,7 @@ public abstract class BaseChartWidget extends FrameLayout {
 
     void setDetailsChart(Chart chart) {
         details.chart = chart;
+        details.finderView.setInitialDate(detailsDate);
         details.finderView.setChart(chart);
 
         if (isDetailsHasSameSources()) {

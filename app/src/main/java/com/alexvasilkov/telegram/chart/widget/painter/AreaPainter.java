@@ -125,7 +125,7 @@ class AreaPainter extends Painter {
                 sum += chart.sources[s].y[i] * sourcesStates[s];
             }
 
-            scales[i] = total / sum;
+            scales[i] = sum == 0f ? 1f : total / sum;
         }
 
         // Starting drawing from 100%, top to bottom
