@@ -55,6 +55,7 @@ public abstract class BaseChartView extends FrameLayout {
     private final Rect chartPos = new Rect();
 
     private int selectedPointX = -1;
+    private int selectedSourceInd = -1;
 
     private OnRangeChangeListener xRangeListener;
 
@@ -137,6 +138,7 @@ public abstract class BaseChartView extends FrameLayout {
         yRangeState.reset();
 
         selectedPointX = -1;
+        selectedSourceInd = -1;
 
         animator.stop();
 
@@ -231,6 +233,15 @@ public abstract class BaseChartView extends FrameLayout {
     void setSelectedPointX(int selectedX) {
         selectedPointX = selectedX;
         invalidate();
+    }
+
+    void setSelectedSourceInd(int sourceInd) {
+        selectedSourceInd = sourceInd;
+        invalidate();
+    }
+
+    int getSelectedSourceInd() {
+        return selectedSourceInd;
     }
 
 
@@ -345,6 +356,8 @@ public abstract class BaseChartView extends FrameLayout {
             result |= !state.isFinished();
         }
 
+        result |= painter.isAnimating();
+
         return result;
     }
 
@@ -420,6 +433,7 @@ public abstract class BaseChartView extends FrameLayout {
                 to,
                 sourcesStatesValues,
                 selectedPointX,
+                selectedSourceInd,
                 isAnimating || simplifiedDrawing || !matrixExtra.isIdentity()
         );
     }

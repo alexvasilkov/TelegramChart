@@ -180,11 +180,10 @@ public class ChartsLoader {
         final int sourcesCount = first.sources.length;
         final Source[] sources = new Source[sourcesCount];
         for (int s = 0; s < sourcesCount; s++) {
-            final Source source = first.sources[s];
-            sources[s] = new Source(source.name, source.color, y[s]);
+            sources[s] = first.sources[s].setY(y[s]);
         }
 
-        return new Chart(first.id, first.type, first.resolution, x, sources);
+        return first.setX(x).setSources(sources);
     }
 
     private static Chart subChart(Chart chart, long from, long to) {
@@ -215,10 +214,10 @@ public class ChartsLoader {
             final int[] resultY = new int[toInd - fromInd + 1];
             System.arraycopy(source.y, fromInd, resultY, 0, resultY.length);
 
-            sources[s] = new Source(source.name, source.color, resultY);
+            sources[s] = source.setY(resultY);
         }
 
-        return new Chart(chart.id, chart.type, chart.resolution, resultX, sources);
+        return chart.setX(resultX).setSources(sources);
     }
 
 
@@ -244,8 +243,7 @@ public class ChartsLoader {
     private static void fixSources(Chart chart, Type type) {
         if (chart != null && type.namesOverride != null) {
             for (int i = 0, size = chart.sources.length; i < size; i++) {
-                Source source = chart.sources[i];
-                chart.sources[i] = new Source(type.namesOverride[i], source.color, source.y);
+                chart.sources[i] = chart.sources[i].setName(type.namesOverride[i]);
             }
         }
     }
@@ -270,7 +268,7 @@ public class ChartsLoader {
         // Overview: Bars by day. Details: Line 1 day by hour x 3 for 0, -1, -7.
         VIEWS(4, Resolution.DAY, Resolution.FIVE_MIN, null),
 
-        // Overview: Percentage by day. Details: Pie + Bars by day x 7.
+        // Overview: Percentage by day. Details: Pie + Area by day x 7.
         APPS(5, Resolution.DAY, null,
                 new String[] { "Android", "iPhone", "OSX", "Web", "Desktop", "Other" });
 

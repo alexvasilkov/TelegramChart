@@ -1,9 +1,9 @@
 package com.alexvasilkov.telegram.chart.app.widgets.charts;
 
 import android.content.Context;
+import android.graphics.Matrix;
 import android.util.AttributeSet;
 import android.view.View;
-import android.view.ViewTreeObserver;
 
 import com.alexvasilkov.telegram.chart.R;
 import com.alexvasilkov.telegram.chart.data.ChartsLoader;
@@ -11,8 +11,10 @@ import com.alexvasilkov.telegram.chart.data.ChartsLoader.Type;
 import com.alexvasilkov.telegram.chart.domain.Chart;
 import com.alexvasilkov.telegram.chart.domain.Chart.Source;
 import com.alexvasilkov.telegram.chart.utils.ColorUtils;
+import com.alexvasilkov.telegram.chart.widget.BaseChartView;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class ViewsWidget extends BaseChartWidget {
@@ -82,13 +84,7 @@ public class ViewsWidget extends BaseChartWidget {
             }
         }
 
-        setDetailsChart(new Chart(
-                first.id,
-                first.type,
-                first.resolution,
-                first.x,
-                sources.toArray(new Source[0])
-        ));
+        setDetailsChart(first.setSources(sources.toArray(new Source[0])));
     }
 
     private static int[] padValuesOnStart(int[] values, int size) {
@@ -102,4 +98,46 @@ public class ViewsWidget extends BaseChartWidget {
         return (MarginLayoutParams) view.getLayoutParams();
     }
 
+
+    @Override
+    void animateChart(
+            BaseChartView fromView, Matrix fromMatrix, Chart fromChart,
+            BaseChartView toView, Matrix toMatrix, Chart toChart,
+            long date, Calendar calendar, boolean show
+    ) {
+
+        if (fromView == main.finderView) {
+            float scaleMain = show ? 0.75f : 1f;
+
+            main.finderView.animate()
+                    .setDuration(ANIMATION_DURATION)
+                    .scaleX(scaleMain)
+                    .scaleY(scaleMain);
+
+            sourcesGroup.setPivotX(0f);
+            sourcesGroup.setPivotY(sourcesGroup.getHeight());
+
+            float scaleSourcesFrom = show ? 0.75f : 1f;
+            float scaleSources = show ? 1f : 0.75f;
+
+            for (int i = 0; i < sourcesGroup.getChildCount(); i++) {
+                View child = sourcesGroup.getChildAt(i);
+
+                child.setScaleX(scaleSourcesFrom);
+                child.setScaleY(scaleSourcesFrom);
+
+                child.animate()
+                        .setDuration(ANIMATION_DURATION)
+                        .scaleX(scaleSources)
+                        .scaleY(scaleSources);
+            }
+
+        } else {
+            super.animateChart(
+                    fromView, fromMatrix, fromChart,
+                    toView, toMatrix, toChart,
+                    date, calendar, show
+            );
+        }
+    }
 }

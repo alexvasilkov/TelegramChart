@@ -82,7 +82,8 @@ class BarsPainter extends Painter {
             int from,
             int to,
             float[] sourcesStates,
-            int selected,
+            int selectedPos,
+            int selectedSourceInd,
             boolean simplified
     ) {
 
@@ -114,7 +115,7 @@ class BarsPainter extends Painter {
 
             // Bars should be dimmed down if particular bar is selected
             final int color = getSourceColor(s);
-            barPaint.setColor(selected == -1 ? color : ColorUtils.overlay(color, selectionMask));
+            barPaint.setColor(selectedPos == -1 ? color : ColorUtils.overlay(color, selectionMask));
 
             final int offset = 4 * from;
             final int count = 2 * (to - from + 1);
@@ -124,13 +125,13 @@ class BarsPainter extends Painter {
             canvas.drawLines(pointsTrans, offset, 2 * count, barPaint);
 
             // Drawing full-color bar, if selected
-            if (from <= selected && selected <= to) {
+            if (from <= selectedPos && selectedPos <= to) {
                 barPaint.setColor(color);
                 canvas.drawLine(
-                        pointsTrans[4 * selected],
-                        pointsTrans[4 * selected + 1],
-                        pointsTrans[4 * selected + 2],
-                        pointsTrans[4 * selected + 3],
+                        pointsTrans[4 * selectedPos],
+                        pointsTrans[4 * selectedPos + 1],
+                        pointsTrans[4 * selectedPos + 2],
+                        pointsTrans[4 * selectedPos + 3],
                         barPaint
                 );
             }

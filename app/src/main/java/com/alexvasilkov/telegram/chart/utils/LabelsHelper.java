@@ -34,7 +34,7 @@ public class LabelsHelper {
     }
 
     public float computeLevel(float size) {
-        return (size - 1f) / maxIntervals;
+        return maxIntervals == 0f ? 1f : (size - 1f) / maxIntervals;
     }
 
 

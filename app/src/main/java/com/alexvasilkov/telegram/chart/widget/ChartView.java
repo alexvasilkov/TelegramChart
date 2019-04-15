@@ -27,6 +27,7 @@ import com.alexvasilkov.telegram.chart.utils.LabelsHelper;
 import com.alexvasilkov.telegram.chart.widget.style.ChartStyle;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -62,14 +63,14 @@ public class ChartView extends BaseChartView {
     private FormatterValue yLabelFormatter;
 
     private final GestureDetector gestureDetector;
+    private boolean firstScrollEvent;
+
     private final Matrix matrixInverse = new Matrix();
     private float selectedPosX = Float.NaN;
     private int selectedChartX = -1;
-    private boolean firstScrollEvent;
-    private boolean isSelectionTemporary;
-    private boolean selectionWasShown;
-
-    private PopupAdapter<?> selectionPopupAdapter;
+    private boolean isTemporarySelectionX;
+    private boolean isSelectionXWasShown;
+    private PopupAdapter<?> selectionXPopupAdapter;
 
 
     public ChartView(Context context, AttributeSet attrs) {
@@ -123,7 +124,7 @@ public class ChartView extends BaseChartView {
 
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
-                return onSingleTapEvent(e.getX());
+                return onSingleTapEvent(e.getX(), e.getY());
             }
 
             @Override
@@ -176,9 +177,9 @@ public class ChartView extends BaseChartView {
         yGuidesOld.clear();
 
         clearSelectedPosX();
-        if (selectionPopupAdapter != null) {
-            selectionPopupAdapter.clear();
-            selectionPopupAdapter.init(this, newChart);
+        if (selectionXPopupAdapter != null) {
+            selectionXPopupAdapter.clear();
+            selectionXPopupAdapter.init(this, newChart);
         }
 
         super.setChart(newChart);
@@ -192,8 +193,24 @@ public class ChartView extends BaseChartView {
         updateSelectionPopupContent();
     }
 
-    public void setSelectionPopupAdapter(PopupAdapter<?> adapter) {
-        selectionPopupAdapter = adapter;
+    public void setSelectionXPopupAdapter(PopupAdapter<?> adapter) {
+        selectionXPopupAdapter = adapter;
+    }
+
+    @Override
+    public void setScaleX(float scaleX) {
+        super.setScaleX(scaleX);
+        if (selectionXPopupAdapter != null) {
+            selectionXPopupAdapter.scaleX(1f / scaleX);
+        }
+    }
+
+    @Override
+    public void setScaleY(float scaleY) {
+        super.setScaleY(scaleY);
+        if (selectionXPopupAdapter != null) {
+            selectionXPopupAdapter.scaleY(1f / scaleY);
+        }
     }
 
     @Override
@@ -241,50 +258,19 @@ public class ChartView extends BaseChartView {
 
         // Preparing Y guides once range is set
         if (!isSmallChange) {
-            // We wont animate the very first guides
-            final boolean animate = yGuides != null;
-
-            // Animating out old Y guides
-            if (yGuides != null) {
-                yGuidesOld.add(yGuides);
-                yGuides.state.animateTo(0f);
-            }
-
-            // Preparing new Y guides
-            final boolean hasIndependentSources = painter.hasIndependentSources();
-            final int independentSources = hasIndependentSources ? chart.sources.length : 1;
-
-            yGuides = new YGuides(yGuidesCount, independentSources, hasVisibleSources());
-
-            final int maxValue = (int) yRangeEnd.to;
-
-            for (int i = 0; i < yGuidesCount; i++) {
-                final int value = (int) (fromY + (toY - fromY) * i / (yGuidesCount - 1));
-                yGuides.orig[i] = value;
-
-                for (int s = 0; s < independentSources; s++) {
-                    final float scale = painter.getSourcesScales()[s];
-                    final int scaledValue = Math.round(value / scale);
-                    final int scaledMaxValue = Math.round(maxValue / scale);
-
-                    yGuides.titles[s][i] = yLabelFormatter == null
-                            ? String.valueOf(scaledValue)
-                            : yLabelFormatter.format(scaledValue, scaledMaxValue);
-                }
-            }
-
-            if (animate) {
-                yGuides.state.setTo(0f); // Setting initial hidden state
-                yGuides.state.animateTo(1f); // Animating to visible state
-            } else {
-                yGuides.state.setTo(1f); // Setting initial visible state
-            }
+            prepareYGuides(fromY, toY);
         }
     }
 
     private void prepareXLabels() {
         if (xLabels != null) {
             return; // Already prepared
+        }
+
+        if (chart.type == Chart.Type.PIE) {
+            // No X labels needed
+            xLabels = Collections.emptyList();
+            return;
         }
 
         final int size = chart.x.length;
@@ -318,6 +304,53 @@ public class ChartView extends BaseChartView {
         return textBounds.width();
     }
 
+    private void prepareYGuides(float fromY, float toY) {
+        // We wont animate the very first guides
+        final boolean animate = yGuides != null;
+
+        if (chart.type == Chart.Type.PIE) {
+            // No Y guides needed
+            yGuides = new YGuides(0, 0, false);
+            return;
+        }
+
+        // Animating out old Y guides
+        if (yGuides != null) {
+            yGuidesOld.add(yGuides);
+            yGuides.state.animateTo(0f);
+        }
+
+        // Preparing new Y guides
+        final boolean hasIndependentSources = painter.hasIndependentSources();
+        final int independentSources = hasIndependentSources ? chart.sources.length : 1;
+
+        yGuides = new YGuides(yGuidesCount, independentSources, hasVisibleSources());
+
+        final int maxValue = (int) yRangeEnd.to;
+
+        for (int i = 0; i < yGuidesCount; i++) {
+            final int value = (int) (fromY + (toY - fromY) * i / (yGuidesCount - 1));
+            yGuides.orig[i] = value;
+
+            for (int s = 0; s < independentSources; s++) {
+                final float scale = painter.getSourcesScales()[s];
+                final int scaledValue = Math.round(value / scale);
+                final int scaledMaxValue = Math.round(maxValue / scale);
+
+                yGuides.titles[s][i] = yLabelFormatter == null
+                        ? String.valueOf(scaledValue)
+                        : yLabelFormatter.format(scaledValue, scaledMaxValue);
+            }
+        }
+
+        if (animate) {
+            yGuides.state.setTo(0f); // Setting initial hidden state
+            yGuides.state.animateTo(1f); // Animating to visible state
+        } else {
+            yGuides.state.setTo(1f); // Setting initial visible state
+        }
+    }
+
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -339,13 +372,13 @@ public class ChartView extends BaseChartView {
 
     private boolean onDownEvent() {
         firstScrollEvent = true;
-        selectionWasShown = selectedChartX != -1;
+        isSelectionXWasShown = selectedChartX != -1;
         return true;
     }
 
     private void onCancelEvent() {
         // Clearing selection if it was only a temporary "show press" effect
-        if (isSelectionTemporary && !selectionWasShown) {
+        if (isTemporarySelectionX && !isSelectionXWasShown) {
             clearSelectedPosX();
         }
     }
@@ -355,12 +388,26 @@ public class ChartView extends BaseChartView {
     }
 
     private void onShowPressEvent(float posX) {
-        isSelectionTemporary = true;
+        isTemporarySelectionX = true;
         setSelectedPosX(posX);
     }
 
-    private boolean onSingleTapEvent(float posX) {
-        if (selectionWasShown) {
+    private boolean onSingleTapEvent(float posX, float posY) {
+        if (painter != null) {
+            final int selectedSource = painter.pickSource(getChartPosition(), posX, posY);
+
+            if (selectedSource >= 0 && selectedSource != getSelectedSourceInd()) {
+                setSelectedSourceInd(selectedSource);
+                return true;
+            }
+
+            if (getSelectedSourceInd() >= 0) {
+                setSelectedSourceInd(-1);
+                return true;
+            }
+        }
+
+        if (isSelectionXWasShown) {
             clearSelectedPosX();
         } else {
             setSelectedPosX(posX);
@@ -369,7 +416,7 @@ public class ChartView extends BaseChartView {
     }
 
     private boolean onScrollEvent(float posX, float distanceX) {
-        isSelectionTemporary = false;
+        isTemporarySelectionX = false;
 
         if (firstScrollEvent) {
             firstScrollEvent = false;
@@ -387,6 +434,10 @@ public class ChartView extends BaseChartView {
     }
 
     private void setSelectedPosX(float posX) {
+        if (painter == null || !painter.allowXSelection()) {
+            return;
+        }
+
         selectedPosX = posX;
 
         // Selecting nearest X point in chart coordinates
@@ -489,19 +540,19 @@ public class ChartView extends BaseChartView {
     }
 
     public void updateSelectionPopupContent() {
-        if (selectionPopupAdapter == null) {
+        if (selectionXPopupAdapter == null) {
             return;
         }
         if (selectedChartX != -1) {
             updateSelectionPopupPos();
-            selectionPopupAdapter.show(chart, getSourcesVisibility(), selectedChartX);
+            selectionXPopupAdapter.show(chart, getSourcesVisibility(), selectedChartX);
         } else {
-            selectionPopupAdapter.hide();
+            selectionXPopupAdapter.hide();
         }
     }
 
     private void updateSelectionPopupPos() {
-        if (selectionPopupAdapter == null) {
+        if (selectionXPopupAdapter == null) {
             return;
         }
         if (selectedChartX != -1) {
@@ -511,7 +562,7 @@ public class ChartView extends BaseChartView {
             final int chartMid = (chartPos.left + chartPos.right) / 2;
             float shift = posX > chartMid ? 1.07f : -0.07f;
 
-            selectionPopupAdapter.setPosition(posX - getPaddingLeft(), shift);
+            selectionXPopupAdapter.setPosition(posX - getPaddingLeft(), shift);
         }
     }
 
@@ -601,6 +652,10 @@ public class ChartView extends BaseChartView {
 
 
     private void drawXLabels(Canvas canvas, float left, float right) {
+        if (xLabels.isEmpty()) {
+            return; // No X labels needed
+        }
+
         final int fromExtX = (int) Math.ceil(xRangeExt.from);
         final int toExtX = (int) Math.floor(xRangeExt.to);
 
@@ -798,6 +853,18 @@ public class ChartView extends BaseChartView {
                     holder.itemView.animate().cancel();
                     holder.itemView.setTranslationX(shift);
                 }
+            }
+        }
+
+        void scaleX(float scaleX) {
+            if (holder != null) {
+                holder.itemView.setScaleX(scaleX);
+            }
+        }
+
+        void scaleY(float scaleY) {
+            if (holder != null) {
+                holder.itemView.setScaleY(scaleY);
             }
         }
 

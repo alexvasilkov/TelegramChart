@@ -9,6 +9,8 @@
         <attr name="chart_selectionColor" format="reference|color" />
         <attr name="chart_selectionMask" format="reference|color" />
         <attr name="chart_backgroundHint" format="reference|color" />
+        <attr name="chart_pie_minTextSize" format="reference|dimension" />
+        <attr name="chart_pie_maxTextSize" format="reference|dimension" />
     </declare-styleable>
 
     <declare-styleable name="ChartView">

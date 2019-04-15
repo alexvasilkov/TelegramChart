@@ -132,13 +132,14 @@ class LinesPainter extends Painter {
             int from,
             int to,
             float[] sourcesStates,
-            int selected,
+            int selectedPos,
+            int selectedSourceInd,
             boolean simplified
     ) {
 
         // Drawing selected point line if withing visible range
-        if (from <= selected && selected <= to) {
-            float posX = ChartMath.mapX(matrix, selected);
+        if (from <= selectedPos && selectedPos <= to) {
+            float posX = ChartMath.mapX(matrix, selectedPos);
             canvas.drawLine(posX, chartPos.top, posX, chartPos.bottom, selectionPaint);
         }
 
@@ -163,7 +164,7 @@ class LinesPainter extends Painter {
             }
         }
 
-        if (selected == -1) {
+        if (selectedPos == -1) {
             return;
         }
 
@@ -181,7 +182,7 @@ class LinesPainter extends Painter {
             // Point's alpha should change much slower than main path
             pointPaint.setAlpha(toAlpha((float) Math.sqrt(Math.sqrt(state))));
 
-            drawSelected(canvas, matrix, selected, source.y[selected], valuesScale);
+            drawSelected(canvas, matrix, selectedPos, source.y[selectedPos], valuesScale);
         }
     }
 

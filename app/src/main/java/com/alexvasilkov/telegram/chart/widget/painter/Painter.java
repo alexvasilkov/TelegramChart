@@ -55,10 +55,24 @@ public abstract class Painter {
             int from,
             int to,
             float[] sourcesStates,
-            int selected,
+            int selectedPos,
+            int selectedSourceInd,
             boolean simplified
     );
 
+
+    public boolean isAnimating() {
+        return false;
+    }
+
+
+    public boolean allowXSelection() {
+        return true;
+    }
+
+    public int pickSource(Rect chartPos, float posX, float posY) {
+        return -1;
+    }
 
     public boolean hasIndependentSources() {
         for (float scale : sourcesScales) {
@@ -72,6 +86,7 @@ public abstract class Painter {
     public float[] getSourcesScales() {
         return sourcesScales;
     }
+
 
     int getSourceColor(int index) {
         final int color = chart.sources[index].color;
@@ -95,6 +110,8 @@ public abstract class Painter {
                 return new AreaPainter(chart, false);
             case AREA_SQUARE:
                 return new AreaPainter(chart, true);
+            case PIE:
+                return new PiePainter(chart);
             default:
                 return new LinesPainter(chart); // Fallback to line painter
         }

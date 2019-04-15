@@ -37,7 +37,8 @@ import java.util.TimeZone;
 
 public abstract class BaseChartWidget extends FrameLayout {
 
-    private static final long ANIMATION_DURATION = 300L;
+    static final long ANIMATION_DURATION = 250L;
+    private static final boolean USE_SYSTEM_ANIMATION = true;
 
     final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
@@ -60,6 +61,7 @@ public abstract class BaseChartWidget extends FrameLayout {
         setAlpha(0f);
 
         main = new Holder(
+                false,
                 findViewById(R.id.chart_layout),
                 findViewById(R.id.chart_title),
                 findViewById(R.id.chart_range),
@@ -70,6 +72,7 @@ public abstract class BaseChartWidget extends FrameLayout {
         );
 
         details = new Holder(
+                true,
                 findViewById(R.id.chart_details_layout),
                 findViewById(R.id.chart_details_title),
                 findViewById(R.id.chart_details_range),
@@ -129,7 +132,7 @@ public abstract class BaseChartWidget extends FrameLayout {
         showDetails(true, true);
     }
 
-    void onRequestDetails(long date) {} // TODO: Make abstract once all widgets are implemented
+    abstract void onRequestDetails(long date);
 
     void showDetails(boolean show, boolean animate) {
         if (detailsShown != null && detailsShown == show) {
@@ -214,11 +217,11 @@ public abstract class BaseChartWidget extends FrameLayout {
         }
     }
 
-    private static void animateChart(
+    void animateChart(
             BaseChartView fromView, Matrix fromMatrix, Chart fromChart,
             BaseChartView toView, Matrix toMatrix, Chart toChart,
-            long date, Calendar calendar, boolean show) {
-
+            long date, Calendar calendar, boolean show
+    ) {
         fromMatrix.reset();
         fromView.setChartMatrixExtra(fromMatrix);
 
@@ -234,13 +237,14 @@ public abstract class BaseChartWidget extends FrameLayout {
         final float toWidth = ChartMath.mapX(toView.getChartMatrix(), 0f)
                 - ChartMath.mapX(toView.getChartMatrix(), steps);
 
-        final float scale = Math.min(toWidth / fromWidth, 4f);
+        final float scale = Math.min(toWidth / fromWidth, 3f);
 
         final float fromPos = fromChart.resolution.distance(fromChart.x[0], date);
         final float fromPivot = ChartMath.mapX(fromView.getChartMatrix(), fromPos);
 
         final float toPos = toChart.resolution.distance(toChart.x[0], date) + 0.5f * steps;
         final float toPivot = ChartMath.mapX(toView.getChartMatrix(), toPos);
+
 
         final ValueAnimator animator = ValueAnimator.ofFloat(show ? 0f : 1f, show ? 1f : 0f);
         animator.setDuration(ANIMATION_DURATION);
@@ -252,14 +256,28 @@ public abstract class BaseChartWidget extends FrameLayout {
             fromMatrix.postTranslate(fromTranslateX, 0f);
             final float fromScaleX = 1f - state + state * scale;
             fromMatrix.postScale(fromScaleX, 1f, fromPivot + fromTranslateX, 0f);
-            fromView.setChartMatrixExtra(fromMatrix);
+
+            if (USE_SYSTEM_ANIMATION) {
+                fromView.setPivotX(fromPivot);
+                fromView.setScaleX(fromScaleX);
+                fromView.setTranslationX(fromTranslateX);
+            } else {
+                fromView.setChartMatrixExtra(fromMatrix);
+            }
 
             toMatrix.reset();
             final float toTranslateX = (1f - state) * (fromPivot - toPivot);
             toMatrix.postTranslate((1f - state) * (fromPivot - toPivot), 0f);
             final float toScaleX = state + (1f - state) / scale;
             toMatrix.postScale(toScaleX, 1f, toPivot + toTranslateX, 0f);
-            toView.setChartMatrixExtra(toMatrix);
+
+            if (USE_SYSTEM_ANIMATION) {
+                toView.setPivotX(toPivot);
+                toView.setScaleX(toScaleX);
+                toView.setTranslationX(toTranslateX);
+            } else {
+                toView.setChartMatrixExtra(toMatrix);
+            }
         });
         animator.start();
     }
@@ -400,6 +418,7 @@ public abstract class BaseChartWidget extends FrameLayout {
         Chart chart;
 
         Holder(
+                boolean details,
                 View layout,
                 TextView titleText, TextView rangeText,
                 ChartView chartView, ChartFinderView finderView,
@@ -413,14 +432,14 @@ public abstract class BaseChartWidget extends FrameLayout {
             this.finderView = finderView;
             this.popupAdapter = popupAdapter;
 
-            chartView.setSelectionPopupAdapter(popupAdapter);
+            chartView.setSelectionXPopupAdapter(popupAdapter);
             finderView.attachTo(chartView);
 
             chartView.setYLabelFormatter(formatters::formatNumberAbbreviate);
 
             chartView.setXRangeListener((chart, range) -> {
                 final long from = chart.x[Math.round(range.from)];
-                final long to = chart.x[Math.round(range.to) - 1];
+                final long to = chart.x[Math.round(range.to) - (details ? 1 : 0)];
                 rangeText.setText(formatters.formatRangeLong(from, to));
             });
 

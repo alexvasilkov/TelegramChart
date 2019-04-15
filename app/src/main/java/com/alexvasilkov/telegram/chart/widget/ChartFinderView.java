@@ -108,11 +108,17 @@ public class ChartFinderView extends BaseChartView {
 
     @Override
     public void setChart(Chart chart) {
-        super.setChart(chart);
+        Chart fixedChart = chart;
+        if (chart.type == Chart.Type.PIE) {
+            // We can't draw PIE type in preview, drawing square area instead
+            fixedChart = chart.setType(Chart.Type.AREA_SQUARE);
+        }
+
+        super.setChart(fixedChart);
+
         chartView.setChart(chart);
 
         setInitialHandle();
-        chartView.setRange(handleRange.from, handleRange.to, false, false);
     }
 
     @Override
@@ -323,6 +329,8 @@ public class ChartFinderView extends BaseChartView {
                 snapToGroups(handleRange, handleRange, groupBy, HANDLE_BOTH);
             }
         }
+
+        chartView.setRange(handleRange.from, handleRange.to, false, false);
     }
 
     private void snapToGroups(Range range, Range dst, GroupBy groupBy, int selectedHandle) {

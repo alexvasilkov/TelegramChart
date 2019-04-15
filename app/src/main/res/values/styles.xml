@@ -46,9 +46,8 @@
 
     <style name="Chart.Title">
         <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:paddingTop">4dp</item>
-        <item name="android:paddingBottom">4dp</item>
+        <item name="android:layout_height">32sp</item>
+        <item name="android:gravity">center_vertical</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textSize">16sp</item>
     </style>
@@ -77,6 +76,8 @@
         <item name="chart_pointRadius">4dp</item>
         <item name="chart_selectionColor">@color/chart_guides</item>
         <item name="chart_selectionWidth">1.5dp</item>
+        <item name="chart_pie_minTextSize">14sp</item>
+        <item name="chart_pie_maxTextSize">26sp</item>
     </style>
 
     <style name="Chart.Finder">

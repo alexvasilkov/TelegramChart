@@ -68,7 +68,8 @@ class AreaPainter extends Painter {
             int from,
             int to,
             float[] sourcesStates,
-            int selected,
+            int selectedPos,
+            int selectedSourceInd,
             boolean simplified
     ) {
 
@@ -90,8 +91,8 @@ class AreaPainter extends Painter {
 
 
         // Drawing selected point line if withing visible range
-        if (from <= selected && selected <= to) {
-            float posX = ChartMath.mapX(matrix, selected);
+        if (from <= selectedPos && selectedPos <= to) {
+            float posX = ChartMath.mapX(matrix, selectedPos);
             canvas.drawLine(posX, chartPos.top, posX, chartPos.bottom, selectionPaint);
         }
     }

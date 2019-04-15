@@ -23,6 +23,9 @@ public class ChartStyle {
     public int selectionMask;
     public int backgroundColorHint;
 
+    public final float pieMinTextSize;
+    public final float pieMaxTextSize;
+
 
     public ChartStyle(Context context, AttributeSet attrs) {
         TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.BaseChartView);
@@ -46,6 +49,12 @@ public class ChartStyle {
 
         backgroundColorHint = arr.getColor(R.styleable.BaseChartView_chart_backgroundHint,
                 Color.TRANSPARENT);
+
+        pieMinTextSize = arr.getDimension(R.styleable.BaseChartView_chart_pie_minTextSize,
+                dpToPx(context, 12f));
+
+        pieMaxTextSize = arr.getDimension(R.styleable.BaseChartView_chart_pie_maxTextSize,
+                dpToPx(context, 24f));
 
         arr.recycle();
     }
