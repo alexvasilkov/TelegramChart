@@ -46,7 +46,7 @@ public class AppsWidget extends BaseChartWidget {
     @Override
     void onRequestDetails(long date) {
         final long[] dates = new long[] { date };
-        final int detailsDays = 7;
+        final int detailsDays = 6;
         ChartsLoader.loadDetails(getContext(), TYPE, dates, detailsDays, this::onDetailsLoaded);
     }
 

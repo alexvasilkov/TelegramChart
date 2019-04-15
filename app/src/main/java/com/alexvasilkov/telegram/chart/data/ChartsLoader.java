@@ -105,7 +105,7 @@ public class ChartsLoader {
 
         // Loading data for X days with requested day in the middle.
         // Note, that we need to load one more day in the end to get missing last value.
-        calendar.add(Calendar.DAY_OF_MONTH, -(days - 1) / 2);
+        calendar.add(Calendar.DAY_OF_MONTH, -days / 2);
         final long from = calendar.getTimeInMillis();
 
         calendar.add(Calendar.DAY_OF_MONTH, days);
