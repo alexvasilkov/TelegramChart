@@ -7,4 +7,26 @@ Contest consisted of 3 stages:
 * Stage 2: [announcement](https://t.me/s/contest/59), [results](https://t.me/s/contest/79) (and [here](https://contest.com/chart-android)) - 1st place ("Desert Gorilla")
 * Bonus stage: [announcement](https://t.me/s/contest/92), [results](https://t.me/s/contest/99) (and [here](https://contest.com/telegram-fixes)) - 1st place ("Desert Gorilla")
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/KDJj08qN7n4" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+#### Demo ####
+
+[<img src="https://www.youtube.com/yt/about/media/images/brand-resources/logos/YouTube-logo-full_color_light.svg" width="120">](https://youtu.be/q-s6q2hRFmQ "")
+
+[<img src="https://github.com/alexvasilkov/TelegramChart/raw/master/app/art/demo.gif" width="270">](https://youtu.be/q-s6q2hRFmQ)
+
+#### Usage ####
+
+It is not planned to make a reusable library out of this app, but you can use and modify source code of this project according to your needs.
+
+#### License ####
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
