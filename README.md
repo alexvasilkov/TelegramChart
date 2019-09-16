@@ -4,7 +4,7 @@ This is source code of Android app that won first place in 2019 Telegram coding 
 
 #### Demo ####
 
-[<img src="https://www.youtube.com/yt/about/media/images/brand-resources/logos/YouTube-logo-full_color_light.svg" width="120">](https://youtu.be/q-s6q2hRFmQ "")
+[<img src="https://www.youtube.com/about/static/svgs/icons/brand-resources/YouTube-logo-full_color_light.svg" width="120">](https://youtu.be/q-s6q2hRFmQ "")
 
 [<img src="https://github.com/alexvasilkov/TelegramChart/raw/master/app/art/demo.gif" width="270">](https://youtu.be/q-s6q2hRFmQ)
 
